@@ -1,6 +1,3 @@
--- +1 Scripts Hub
--- Game | Game List | Settings | Misc
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
