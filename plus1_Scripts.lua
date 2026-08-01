@@ -1,0 +1,915 @@
+-- +1 Scripts Hub
+-- Game | Game List | Misc
+-- Mobile + PC friendly • Default: +1 Hacker theme
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+if playerGui:FindFirstChild("+1Scripts") then
+	playerGui["+1Scripts"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "+1Scripts"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = playerGui
+
+-- ========== MAIN FRAME ==========
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 340, 0, 310)
+Main.Position = UDim2.new(0.5, -170, 0.5, -155)
+Main.BackgroundColor3 = Color3.fromRGB(8, 18, 12)
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Visible = true
+Main.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = Main
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(30, 70, 40)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = Main
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 38)
+TitleBar.BackgroundColor3 = Color3.fromRGB(12, 26, 16)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = TitleBar
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 12)
+TitleFix.Position = UDim2.new(0, 0, 1, -12)
+TitleFix.BackgroundColor3 = Color3.fromRGB(12, 26, 16)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -45, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "+1 Scripts"
+Title.TextColor3 = Color3.fromRGB(80, 255, 120)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 28, 0, 28)
+Close.Position = UDim2.new(1, -34, 0.5, -14)
+Close.BackgroundColor3 = Color3.fromRGB(20, 40, 25)
+Close.Text = "×"
+Close.TextColor3 = Color3.fromRGB(180, 220, 180)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 18
+Close.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = Close
+
+-- Open Button (√)
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 40, 0, 40)
+OpenBtn.Position = UDim2.new(0, 16, 0.5, -20)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(12, 26, 16)
+OpenBtn.Text = "√"
+OpenBtn.TextColor3 = Color3.fromRGB(80, 255, 120)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 20
+OpenBtn.Visible = false
+OpenBtn.Parent = ScreenGui
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.CornerRadius = UDim.new(0, 8)
+OpenCorner.Parent = OpenBtn
+
+local OpenStroke = Instance.new("UIStroke")
+OpenStroke.Color = Color3.fromRGB(30, 70, 40)
+OpenStroke.Thickness = 1.5
+OpenStroke.Parent = OpenBtn
+
+Close.MouseButton1Click:Connect(function()
+	Main.Visible = false
+	OpenBtn.Visible = true
+end)
+
+OpenBtn.MouseButton1Click:Connect(function()
+	Main.Visible = true
+	OpenBtn.Visible = false
+end)
+
+local openDragging, openDragStart, openStartPos
+OpenBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		openDragging = true
+		openDragStart = input.Position
+		openStartPos = OpenBtn.Position
+	end
+end)
+OpenBtn.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		openDragging = false
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if openDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - openDragStart
+		OpenBtn.Position = UDim2.new(openStartPos.X.Scale, openStartPos.X.Offset + delta.X, openStartPos.Y.Scale, openStartPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Tabs
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -16, 0, 32)
+TabBar.Position = UDim2.new(0, 8, 0, 44)
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = Main
+
+local function createTab(name, position)
+	local tab = Instance.new("TextButton")
+	tab.Name = name
+	tab.Size = UDim2.new(0, 100, 1, 0)
+	tab.Position = position
+	tab.BackgroundColor3 = Color3.fromRGB(14, 30, 18)
+	tab.Text = name
+	tab.TextColor3 = Color3.fromRGB(140, 180, 150)
+	tab.Font = Enum.Font.GothamMedium
+	tab.TextSize = 13
+	tab.Parent = TabBar
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = tab
+	return tab
+end
+
+local GameTab = createTab("Game", UDim2.new(0, 0, 0, 0))
+local GameListTab = createTab("Game List", UDim2.new(0, 108, 0, 0))
+local MiscTab = createTab("Misc", UDim2.new(0, 216, 0, 0))
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -16, 1, -102)
+Content.Position = UDim2.new(0, 8, 0, 82)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+-- Credit label (kept fully inside the UI)
+local Credit = Instance.new("TextLabel")
+Credit.Size = UDim2.new(1, -16, 0, 14)
+Credit.Position = UDim2.new(0, 8, 1, -20)
+Credit.BackgroundTransparency = 1
+Credit.Text = "Made By ItsKyanBence"
+Credit.TextColor3 = Color3.fromRGB(70, 130, 85)
+Credit.Font = Enum.Font.Gotham
+Credit.TextSize = 11
+Credit.TextXAlignment = Enum.TextXAlignment.Center
+Credit.Parent = Main
+
+-- ========== GAME PAGE ==========
+local GamePage = Instance.new("Frame")
+GamePage.Name = "GamePage"
+GamePage.Size = UDim2.new(1, 0, 1, 0)
+GamePage.BackgroundTransparency = 1
+GamePage.Visible = true
+GamePage.Parent = Content
+
+local GameStatus = Instance.new("TextLabel")
+GameStatus.Size = UDim2.new(1, 0, 0, 18)
+GameStatus.BackgroundTransparency = 1
+GameStatus.Text = "Current Game"
+GameStatus.TextColor3 = Color3.fromRGB(120, 160, 130)
+GameStatus.Font = Enum.Font.Gotham
+GameStatus.TextSize = 11
+GameStatus.TextXAlignment = Enum.TextXAlignment.Left
+GameStatus.Parent = GamePage
+
+local GameNameLabel = Instance.new("TextLabel")
+GameNameLabel.Size = UDim2.new(1, 0, 0, 24)
+GameNameLabel.Position = UDim2.new(0, 0, 0, 18)
+GameNameLabel.BackgroundTransparency = 1
+GameNameLabel.Text = "Loading..."
+GameNameLabel.TextColor3 = Color3.fromRGB(200, 255, 210)
+GameNameLabel.Font = Enum.Font.GothamBold
+GameNameLabel.TextSize = 14
+GameNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+GameNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+GameNameLabel.Parent = GamePage
+
+local NotAddedLabel = Instance.new("TextLabel")
+NotAddedLabel.Size = UDim2.new(1, 0, 0, 36)
+NotAddedLabel.Position = UDim2.new(0, 0, 0, 50)
+NotAddedLabel.BackgroundColor3 = Color3.fromRGB(25, 40, 28)
+NotAddedLabel.Text = "Game Not Added Yet!"
+NotAddedLabel.TextColor3 = Color3.fromRGB(180, 220, 180)
+NotAddedLabel.Font = Enum.Font.GothamMedium
+NotAddedLabel.TextSize = 13
+NotAddedLabel.Visible = true
+NotAddedLabel.Parent = GamePage
+
+local NotAddedCorner = Instance.new("UICorner")
+NotAddedCorner.CornerRadius = UDim.new(0, 6)
+NotAddedCorner.Parent = NotAddedLabel
+
+local FeaturesFrame = Instance.new("ScrollingFrame")
+FeaturesFrame.Name = "FeaturesFrame"
+FeaturesFrame.Size = UDim2.new(1, 0, 1, -50)
+FeaturesFrame.Position = UDim2.new(0, 0, 0, 48)
+FeaturesFrame.BackgroundTransparency = 1
+FeaturesFrame.BorderSizePixel = 0
+FeaturesFrame.ScrollBarThickness = 3
+FeaturesFrame.ScrollBarImageColor3 = Color3.fromRGB(40, 90, 50)
+FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+FeaturesFrame.Visible = false
+FeaturesFrame.Parent = GamePage
+
+local function clearFeatures()
+	for _, child in ipairs(FeaturesFrame:GetChildren()) do
+		child:Destroy()
+	end
+end
+
+local function createSection(parent, text, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.Position = UDim2.new(0, 0, 0, y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(100, 180, 120)
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = parent
+	return label
+end
+
+local function createToggle(parent, name, y, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 32)
+	frame.Position = UDim2.new(0, 0, 0, y)
+	frame.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+	frame.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = frame
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -55, 1, 0)
+	label.Position = UDim2.new(0, 10, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = Color3.fromRGB(200, 240, 210)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
+
+	local toggle = Instance.new("TextButton")
+	toggle.Size = UDim2.new(0, 40, 0, 22)
+	toggle.Position = UDim2.new(1, -48, 0.5, -11)
+	toggle.BackgroundColor3 = Color3.fromRGB(30, 50, 35)
+	toggle.Text = ""
+	toggle.Parent = frame
+
+	local tCorner = Instance.new("UICorner")
+	tCorner.CornerRadius = UDim.new(1, 0)
+	tCorner.Parent = toggle
+
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.new(0, 16, 0, 16)
+	circle.Position = UDim2.new(0, 3, 0.5, -8)
+	circle.BackgroundColor3 = Color3.fromRGB(160, 200, 170)
+	circle.Parent = toggle
+
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(1, 0)
+	cCorner.Parent = circle
+
+	local enabled = false
+	toggle.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		if enabled then
+			toggle.BackgroundColor3 = Color3.fromRGB(30, 120, 50)
+			circle.Position = UDim2.new(1, -19, 0.5, -8)
+			circle.BackgroundColor3 = Color3.fromRGB(180, 255, 190)
+		else
+			toggle.BackgroundColor3 = Color3.fromRGB(30, 50, 35)
+			circle.Position = UDim2.new(0, 3, 0.5, -8)
+			circle.BackgroundColor3 = Color3.fromRGB(160, 200, 170)
+		end
+		callback(enabled)
+	end)
+	return frame
+end
+
+local function createButton(parent, name, y, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.Position = UDim2.new(0, 0, 0, y)
+	btn.BackgroundColor3 = Color3.fromRGB(18, 36, 22)
+	btn.Text = name
+	btn.TextColor3 = Color3.fromRGB(200, 240, 210)
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 13
+	btn.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = btn
+
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+local function fireTouch(part)
+	if not part then return end
+	-- If they passed TouchInterest, use its parent
+	if part:IsA("TouchTransmitter") or part.Name == "TouchInterest" then
+		part = part.Parent
+	end
+	if not part or not part:IsA("BasePart") then return end
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	pcall(function()
+		firetouchinterest(part, hrp, 0)
+		task.wait()
+		firetouchinterest(part, hrp, 1)
+	end)
+end
+
+-- ========== GAME 1 FEATURES ==========
+local function buildGame1Features()
+	clearFeatures()
+	createSection(FeaturesFrame, "World 1", 0)
+	createToggle(FeaturesFrame, "Auto Farm Wins", 24, function(Value)
+		getgenv().farm1 = Value
+		while getgenv().farm1 do
+			task.wait()
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				char:MoveTo(Vector3.new(114.85, 12.78, 9503.41))
+			end
+		end
+	end)
+	createButton(FeaturesFrame, "TP To World 2", 62, function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(-5377, -88, -5))
+		end
+	end)
+
+	createSection(FeaturesFrame, "World 2", 105)
+	createToggle(FeaturesFrame, "Auto Farm Wins", 129, function(Value)
+		getgenv().farm2 = Value
+		while getgenv().farm2 do
+			task.wait()
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				char:MoveTo(Vector3.new(-5380.61, 261.45, 13183.42))
+			end
+		end
+	end)
+	createButton(FeaturesFrame, "TP To World 1", 167, function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(118, 14, -8))
+		end
+	end)
+	FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 210)
+end
+
+-- ========== GAME 2 FEATURES ==========
+local function buildGame2Features()
+	clearFeatures()
+
+	-- World 1
+	createSection(FeaturesFrame, "World 1", 0)
+	createToggle(FeaturesFrame, "Auto Farm", 24, function(Value)
+		getgenv().g2_w1 = Value
+		while getgenv().g2_w1 do
+			task.wait(0.15)
+			local ok, part = pcall(function()
+				return workspace.SectionAwardParts:GetChildren()[11]
+			end)
+			if ok and part then
+				fireTouch(part)
+			end
+		end
+	end)
+
+	-- World 2
+	createSection(FeaturesFrame, "World 2", 65)
+	createToggle(FeaturesFrame, "Auto Farm", 89, function(Value)
+		getgenv().g2_w2 = Value
+		while getgenv().g2_w2 do
+			task.wait(0.15)
+			local ok, part = pcall(function()
+				return workspace.SectionAwardParts.World2:GetChildren()[10]
+			end)
+			if ok and part then
+				fireTouch(part)
+			end
+		end
+	end)
+
+	-- World 3 (dynamic - finds TouchInterest each time, works across servers)
+	createSection(FeaturesFrame, "World 3", 130)
+	createToggle(FeaturesFrame, "Auto Farm", 154, function(Value)
+		getgenv().g2_w3 = Value
+		while getgenv().g2_w3 do
+			task.wait(0.15)
+			pcall(function()
+				local world3 = workspace:FindFirstChild("World3")
+				if not world3 then return end
+				-- Find any part under World3 that has TouchInterest
+				for _, child in ipairs(world3:GetChildren()) do
+					if child:FindFirstChildOfClass("TouchTransmitter") or child:FindFirstChild("TouchInterest") then
+						fireTouch(child)
+					end
+				end
+				-- Also check deeper descendants just in case
+				for _, desc in ipairs(world3:GetDescendants()) do
+					if desc:IsA("TouchTransmitter") or desc.Name == "TouchInterest" then
+						fireTouch(desc.Parent)
+					end
+				end
+			end)
+		end
+	end)
+
+	-- TP World Area
+	createSection(FeaturesFrame, "TP World Area", 195)
+	createButton(FeaturesFrame, "World 1", 219, function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(1109, 670, -401))
+		end
+	end)
+	createButton(FeaturesFrame, "World 2", 257, function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(-1755, 670, -413))
+		end
+	end)
+	createButton(FeaturesFrame, "World 3", 295, function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(-3026, 670, -413))
+		end
+	end)
+
+	FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 345)
+end
+
+
+-- ========== GAME 3 FEATURES (84757653274750) ==========
+local function buildGame3Features()
+	clearFeatures()
+
+	createSection(FeaturesFrame, "Farming", 0)
+	createToggle(FeaturesFrame, "Auto Farm Wins", 24, function(Value)
+		getgenv().g3_farm = Value
+		while getgenv().g3_farm do
+			task.wait(0.1)
+			pcall(function()
+				local btn = workspace.WinCollectors.Stage25.Button:GetChildren()[8]
+				if btn then
+					fireTouch(btn)
+				end
+			end)
+		end
+	end)
+
+	createToggle(FeaturesFrame, "Auto Swing", 62, function(Value)
+		getgenv().g3_swing = Value
+		while getgenv().g3_swing do
+			task.wait(0.1)
+			pcall(function()
+				game:GetService("ReplicatedStorage").Remotes.SwingRequest:FireServer()
+			end)
+		end
+	end)
+
+	createSection(FeaturesFrame, "Rebirth", 105)
+	createToggle(FeaturesFrame, "Auto Rebirth", 129, function(Value)
+		getgenv().g3_rebirth = Value
+		while getgenv().g3_rebirth do
+			task.wait(0.5)
+			pcall(function()
+				game:GetService("ReplicatedStorage").Remotes.RebirthRequest:FireServer()
+			end)
+		end
+	end)
+
+	-- Eggs dropdown + Buy
+	createSection(FeaturesFrame, "Eggs", 170)
+
+	local eggOptions = {
+		{Label = "Basic Egg (500)", Egg = "BasicEgg"},
+		{Label = "Advance Egg (35k)", Egg = "AdvancedEgg"},
+		{Label = "Pro Egg (2m)", Egg = "ProEgg"},
+		{Label = "Elite Egg (360m)", Egg = "EliteEgg"},
+	}
+	local selectedEgg = eggOptions[1]
+
+	-- Dropdown button
+	local dropBtn = Instance.new("TextButton")
+	dropBtn.Size = UDim2.new(1, 0, 0, 32)
+	dropBtn.Position = UDim2.new(0, 0, 0, 194)
+	dropBtn.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+	dropBtn.Text = "▼  " .. selectedEgg.Label
+	dropBtn.TextColor3 = Color3.fromRGB(200, 240, 210)
+	dropBtn.Font = Enum.Font.Gotham
+	dropBtn.TextSize = 13
+	dropBtn.TextXAlignment = Enum.TextXAlignment.Left
+	dropBtn.Parent = FeaturesFrame
+
+	local dropCorner = Instance.new("UICorner")
+	dropCorner.CornerRadius = UDim.new(0, 6)
+	dropCorner.Parent = dropBtn
+
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 10)
+	pad.Parent = dropBtn
+
+	-- Dropdown list (hidden by default)
+	local dropList = Instance.new("Frame")
+	dropList.Size = UDim2.new(1, 0, 0, #eggOptions * 30)
+	dropList.Position = UDim2.new(0, 0, 0, 228)
+	dropList.BackgroundColor3 = Color3.fromRGB(12, 24, 16)
+	dropList.Visible = false
+	dropList.ZIndex = 10
+	dropList.Parent = FeaturesFrame
+
+	local listCorner = Instance.new("UICorner")
+	listCorner.CornerRadius = UDim.new(0, 6)
+	listCorner.Parent = dropList
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = dropList
+
+	for i, opt in ipairs(eggOptions) do
+		local optBtn = Instance.new("TextButton")
+		optBtn.Size = UDim2.new(1, 0, 0, 30)
+		optBtn.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+		optBtn.BackgroundTransparency = 0.3
+		optBtn.Text = opt.Label
+		optBtn.TextColor3 = Color3.fromRGB(200, 240, 210)
+		optBtn.Font = Enum.Font.Gotham
+		optBtn.TextSize = 12
+		optBtn.ZIndex = 11
+		optBtn.Parent = dropList
+
+		optBtn.MouseButton1Click:Connect(function()
+			selectedEgg = opt
+			dropBtn.Text = "▼  " .. opt.Label
+			dropList.Visible = false
+		end)
+	end
+
+	dropBtn.MouseButton1Click:Connect(function()
+		dropList.Visible = not dropList.Visible
+	end)
+
+	-- Buy button
+	local buyBtn = Instance.new("TextButton")
+	buyBtn.Size = UDim2.new(1, 0, 0, 32)
+	buyBtn.Position = UDim2.new(0, 0, 0, 234)
+	buyBtn.BackgroundColor3 = Color3.fromRGB(25, 80, 40)
+	buyBtn.Text = "Buy"
+	buyBtn.TextColor3 = Color3.fromRGB(200, 255, 210)
+	buyBtn.Font = Enum.Font.GothamMedium
+	buyBtn.TextSize = 13
+	buyBtn.Parent = FeaturesFrame
+
+	local buyCorner = Instance.new("UICorner")
+	buyCorner.CornerRadius = UDim.new(0, 6)
+	buyCorner.Parent = buyBtn
+
+	-- Keep buy button below dropdown when open
+	local function updateBuyPos()
+		if dropList.Visible then
+			buyBtn.Position = UDim2.new(0, 0, 0, 234 + #eggOptions * 30)
+		else
+			buyBtn.Position = UDim2.new(0, 0, 0, 234)
+		end
+	end
+
+	dropBtn.MouseButton1Click:Connect(function()
+		task.wait()
+		updateBuyPos()
+	end)
+
+	buyBtn.MouseButton1Click:Connect(function()
+		pcall(function()
+			local args = {
+				[1] = "PurchaseEgg",
+				[2] = selectedEgg.Egg,
+				[3] = 1
+			}
+			game:GetService("ReplicatedStorage").Remotes.EggEvents:FireServer(unpack(args))
+		end)
+		buyBtn.Text = "Bought!"
+		task.wait(0.6)
+		buyBtn.Text = "Buy"
+	end)
+
+	FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 290)
+end
+
+-- ========== GAME LIST PAGE ==========
+local GameListPage = Instance.new("Frame")
+GameListPage.Name = "GameListPage"
+GameListPage.Size = UDim2.new(1, 0, 1, 0)
+GameListPage.BackgroundTransparency = 1
+GameListPage.Visible = false
+GameListPage.Parent = Content
+
+local GameListTitle = Instance.new("TextLabel")
+GameListTitle.Size = UDim2.new(1, 0, 0, 18)
+GameListTitle.BackgroundTransparency = 1
+GameListTitle.Text = "Games (click to join)"
+GameListTitle.TextColor3 = Color3.fromRGB(120, 160, 130)
+GameListTitle.Font = Enum.Font.Gotham
+GameListTitle.TextSize = 11
+GameListTitle.TextXAlignment = Enum.TextXAlignment.Left
+GameListTitle.Parent = GameListPage
+
+local GameListScroll = Instance.new("ScrollingFrame")
+GameListScroll.Name = "GameListScroll"
+GameListScroll.Size = UDim2.new(1, 0, 1, -24)
+GameListScroll.Position = UDim2.new(0, 0, 0, 22)
+GameListScroll.BackgroundTransparency = 1
+GameListScroll.BorderSizePixel = 0
+GameListScroll.ScrollBarThickness = 3
+GameListScroll.ScrollBarImageColor3 = Color3.fromRGB(40, 90, 50)
+GameListScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+GameListScroll.Parent = GameListPage
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 6)
+listLayout.Parent = GameListScroll
+
+-- PlaceIds only - real names fetched from Marketplace
+local SupportedPlaceIds = {
+	75626443136851,
+	108775830475023,
+	84757653274750,
+}
+
+local function createGameEntry(placeId, gameName)
+	local entry = Instance.new("TextButton")
+	entry.Size = UDim2.new(1, -2, 0, 40)
+	entry.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+	entry.Text = ""
+	entry.AutoButtonColor = false
+	entry.Parent = GameListScroll
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = entry
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -12, 1, 0)
+	nameLabel.Position = UDim2.new(0, 10, 0, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = gameName
+	nameLabel.TextColor3 = Color3.fromRGB(200, 240, 210)
+	nameLabel.Font = Enum.Font.GothamMedium
+	nameLabel.TextSize = 13
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	nameLabel.Parent = entry
+
+	entry.MouseEnter:Connect(function()
+		entry.BackgroundColor3 = Color3.fromRGB(22, 42, 28)
+	end)
+	entry.MouseLeave:Connect(function()
+		entry.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+	end)
+
+	entry.MouseButton1Click:Connect(function()
+		nameLabel.Text = "Teleporting..."
+		pcall(function()
+			TeleportService:Teleport(placeId, player)
+		end)
+	end)
+	return entry
+end
+
+-- Fetch real game names
+task.spawn(function()
+	for _, placeId in ipairs(SupportedPlaceIds) do
+		local name = "Place " .. tostring(placeId)
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(placeId)
+		end)
+		if ok and info and info.Name then
+			name = info.Name
+		end
+		createGameEntry(placeId, name)
+	end
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		GameListScroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 8)
+	end)
+	GameListScroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 8)
+end)
+
+-- ========== MISC PAGE ==========
+local MiscPage = Instance.new("Frame")
+MiscPage.Name = "MiscPage"
+MiscPage.Size = UDim2.new(1, 0, 1, 0)
+MiscPage.BackgroundTransparency = 1
+MiscPage.Visible = false
+MiscPage.Parent = Content
+
+local MiscTitle = Instance.new("TextLabel")
+MiscTitle.Size = UDim2.new(1, 0, 0, 18)
+MiscTitle.BackgroundTransparency = 1
+MiscTitle.Text = "WalkSpeed"
+MiscTitle.TextColor3 = Color3.fromRGB(120, 160, 130)
+MiscTitle.Font = Enum.Font.Gotham
+MiscTitle.TextSize = 11
+MiscTitle.TextXAlignment = Enum.TextXAlignment.Left
+MiscTitle.Parent = MiscPage
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, 0, 0, 24)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 20)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Current: 16"
+SpeedLabel.TextColor3 = Color3.fromRGB(180, 255, 190)
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextSize = 15
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedLabel.Parent = MiscPage
+
+local SpeedInput = Instance.new("TextBox")
+SpeedInput.Size = UDim2.new(1, 0, 0, 34)
+SpeedInput.Position = UDim2.new(0, 0, 0, 48)
+SpeedInput.BackgroundColor3 = Color3.fromRGB(14, 28, 18)
+SpeedInput.Text = "16"
+SpeedInput.PlaceholderText = "1 - 500"
+SpeedInput.TextColor3 = Color3.fromRGB(200, 240, 210)
+SpeedInput.PlaceholderColor3 = Color3.fromRGB(80, 120, 90)
+SpeedInput.Font = Enum.Font.Gotham
+SpeedInput.TextSize = 14
+SpeedInput.ClearTextOnFocus = false
+SpeedInput.Parent = MiscPage
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 6)
+inputCorner.Parent = SpeedInput
+
+local ApplyBtn = Instance.new("TextButton")
+ApplyBtn.Size = UDim2.new(1, 0, 0, 32)
+ApplyBtn.Position = UDim2.new(0, 0, 0, 90)
+ApplyBtn.BackgroundColor3 = Color3.fromRGB(25, 80, 40)
+ApplyBtn.Text = "Apply WalkSpeed"
+ApplyBtn.TextColor3 = Color3.fromRGB(200, 255, 210)
+ApplyBtn.Font = Enum.Font.GothamMedium
+ApplyBtn.TextSize = 13
+ApplyBtn.Parent = MiscPage
+
+local applyCorner = Instance.new("UICorner")
+applyCorner.CornerRadius = UDim.new(0, 6)
+applyCorner.Parent = ApplyBtn
+
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(1, 0, 0, 30)
+ResetBtn.Position = UDim2.new(0, 0, 0, 128)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 30)
+ResetBtn.Text = "Reset to 16"
+ResetBtn.TextColor3 = Color3.fromRGB(160, 200, 170)
+ResetBtn.Font = Enum.Font.Gotham
+ResetBtn.TextSize = 12
+ResetBtn.Parent = MiscPage
+
+local resetCorner = Instance.new("UICorner")
+resetCorner.CornerRadius = UDim.new(0, 6)
+resetCorner.Parent = ResetBtn
+
+
+
+local function setWalkSpeed(speed)
+	speed = math.clamp(tonumber(speed) or 16, 1, 500)
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = speed
+		end
+	end
+	SpeedLabel.Text = "Current: " .. tostring(speed)
+	SpeedInput.Text = tostring(speed)
+end
+
+ApplyBtn.MouseButton1Click:Connect(function()
+	setWalkSpeed(SpeedInput.Text)
+end)
+ResetBtn.MouseButton1Click:Connect(function()
+	setWalkSpeed(16)
+end)
+SpeedInput.FocusLost:Connect(function(enter)
+	if enter then setWalkSpeed(SpeedInput.Text) end
+end)
+
+player.CharacterAdded:Connect(function(char)
+	task.wait(0.5)
+	local speed = tonumber(SpeedInput.Text) or 16
+	if speed ~= 16 then
+		local hum = char:WaitForChild("Humanoid", 5)
+		if hum then hum.WalkSpeed = math.clamp(speed, 1, 500) end
+	end
+end)
+
+-- Tab switching
+local function switchTab(selected)
+	GamePage.Visible = (selected == "Game")
+	GameListPage.Visible = (selected == "Game List")
+	MiscPage.Visible = (selected == "Misc")
+
+	local tabs = { ["Game"] = GameTab, ["Game List"] = GameListTab, ["Misc"] = MiscTab }
+	for name, tab in pairs(tabs) do
+		if name == selected then
+			tab.BackgroundColor3 = Color3.fromRGB(25, 55, 32)
+			tab.TextColor3 = Color3.fromRGB(180, 255, 190)
+		else
+			tab.BackgroundColor3 = Color3.fromRGB(14, 30, 18)
+			tab.TextColor3 = Color3.fromRGB(140, 180, 150)
+		end
+	end
+end
+
+GameTab.MouseButton1Click:Connect(function() switchTab("Game") end)
+GameListTab.MouseButton1Click:Connect(function() switchTab("Game List") end)
+MiscTab.MouseButton1Click:Connect(function() switchTab("Misc") end)
+
+-- Detect + load features
+local SUPPORTED = {
+	[75626443136851] = buildGame1Features,
+	[108775830475023] = buildGame2Features,
+	[84757653274750] = buildGame3Features,
+}
+
+local success, info = pcall(function()
+	return MarketplaceService:GetProductInfo(game.PlaceId)
+end)
+if success and info then
+	GameNameLabel.Text = info.Name
+else
+	GameNameLabel.Text = "Unknown Game"
+end
+
+if SUPPORTED[game.PlaceId] then
+	NotAddedLabel.Visible = false
+	FeaturesFrame.Visible = true
+	SUPPORTED[game.PlaceId]()
+else
+	NotAddedLabel.Visible = true
+	FeaturesFrame.Visible = false
+end
+
+-- Main draggable
+local dragging, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+TitleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+switchTab("Game")
