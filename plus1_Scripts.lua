@@ -1,0 +1,621 @@
+-- +1 Scripts Hub
+-- Game | Game List | Settings | Misc
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove old GUI if it exists
+if playerGui:FindFirstChild("+1Scripts") then
+	playerGui["+1Scripts"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "+1Scripts"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = playerGui
+
+-- Main Frame
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 460, 0, 380)
+Main.Position = UDim2.new(0.5, -230, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Main
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(45, 45, 55)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = Main
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 44)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 14)
+TitleFix.Position = UDim2.new(0, 0, 1, -14)
+TitleFix.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 16, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "+1 Scripts"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Close Button
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 32, 0, 32)
+Close.Position = UDim2.new(1, -40, 0.5, -16)
+Close.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+Close.Text = "×"
+Close.TextColor3 = Color3.fromRGB(200, 200, 210)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 20
+Close.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = Close
+
+Close.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+end)
+
+-- Tab Buttons
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -24, 0, 36)
+TabBar.Position = UDim2.new(0, 12, 0, 52)
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = Main
+
+local function createTab(name, position)
+	local tab = Instance.new("TextButton")
+	tab.Name = name
+	tab.Size = UDim2.new(0, 100, 1, 0)
+	tab.Position = position
+	tab.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+	tab.Text = name
+	tab.TextColor3 = Color3.fromRGB(180, 180, 195)
+	tab.Font = Enum.Font.GothamMedium
+	tab.TextSize = 13
+	tab.Parent = TabBar
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = tab
+
+	return tab
+end
+
+local GameTab = createTab("Game", UDim2.new(0, 0, 0, 0))
+local GameListTab = createTab("Game List", UDim2.new(0, 108, 0, 0))
+local SettingsTab = createTab("Settings", UDim2.new(0, 216, 0, 0))
+local MiscTab = createTab("Misc", UDim2.new(0, 324, 0, 0))
+
+-- Content Pages
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -24, 1, -100)
+Content.Position = UDim2.new(0, 12, 0, 96)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+-- ========== GAME PAGE ==========
+local GamePage = Instance.new("Frame")
+GamePage.Name = "GamePage"
+GamePage.Size = UDim2.new(1, 0, 1, 0)
+GamePage.BackgroundTransparency = 1
+GamePage.Visible = true
+GamePage.Parent = Content
+
+local GameStatus = Instance.new("TextLabel")
+GameStatus.Size = UDim2.new(1, 0, 0, 20)
+GameStatus.BackgroundTransparency = 1
+GameStatus.Text = "Current Game"
+GameStatus.TextColor3 = Color3.fromRGB(150, 150, 165)
+GameStatus.Font = Enum.Font.Gotham
+GameStatus.TextSize = 12
+GameStatus.TextXAlignment = Enum.TextXAlignment.Left
+GameStatus.Parent = GamePage
+
+local GameNameLabel = Instance.new("TextLabel")
+GameNameLabel.Size = UDim2.new(1, 0, 0, 28)
+GameNameLabel.Position = UDim2.new(0, 0, 0, 22)
+GameNameLabel.BackgroundTransparency = 1
+GameNameLabel.Text = "Loading..."
+GameNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+GameNameLabel.Font = Enum.Font.GothamBold
+GameNameLabel.TextSize = 16
+GameNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+GameNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+GameNameLabel.Parent = GamePage
+
+-- Not Added Label
+local NotAddedLabel = Instance.new("TextLabel")
+NotAddedLabel.Size = UDim2.new(1, 0, 0, 40)
+NotAddedLabel.Position = UDim2.new(0, 0, 0, 60)
+NotAddedLabel.BackgroundColor3 = Color3.fromRGB(45, 30, 30)
+NotAddedLabel.Text = "Game Not Added Yet!"
+NotAddedLabel.TextColor3 = Color3.fromRGB(255, 160, 160)
+NotAddedLabel.Font = Enum.Font.GothamMedium
+NotAddedLabel.TextSize = 15
+NotAddedLabel.Visible = true
+NotAddedLabel.Parent = GamePage
+
+local NotAddedCorner = Instance.new("UICorner")
+NotAddedCorner.CornerRadius = UDim.new(0, 8)
+NotAddedCorner.Parent = NotAddedLabel
+
+-- Features Frame (shown only when game is supported)
+local FeaturesFrame = Instance.new("ScrollingFrame")
+FeaturesFrame.Name = "FeaturesFrame"
+FeaturesFrame.Size = UDim2.new(1, 0, 1, -60)
+FeaturesFrame.Position = UDim2.new(0, 0, 0, 55)
+FeaturesFrame.BackgroundTransparency = 1
+FeaturesFrame.BorderSizePixel = 0
+FeaturesFrame.ScrollBarThickness = 4
+FeaturesFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 320)
+FeaturesFrame.Visible = false
+FeaturesFrame.Parent = GamePage
+
+local function createSection(parent, text, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 22)
+	label.Position = UDim2.new(0, 0, 0, y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(160, 160, 180)
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = parent
+	return label
+end
+
+local function createToggle(parent, name, y, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 36)
+	frame.Position = UDim2.new(0, 0, 0, y)
+	frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+	frame.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -60, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = Color3.fromRGB(230, 230, 240)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
+
+	local toggle = Instance.new("TextButton")
+	toggle.Size = UDim2.new(0, 44, 0, 24)
+	toggle.Position = UDim2.new(1, -52, 0.5, -12)
+	toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+	toggle.Text = ""
+	toggle.Parent = frame
+
+	local tCorner = Instance.new("UICorner")
+	tCorner.CornerRadius = UDim.new(1, 0)
+	tCorner.Parent = toggle
+
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.new(0, 18, 0, 18)
+	circle.Position = UDim2.new(0, 3, 0.5, -9)
+	circle.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+	circle.Parent = toggle
+
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(1, 0)
+	cCorner.Parent = circle
+
+	local enabled = false
+	toggle.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		if enabled then
+			toggle.BackgroundColor3 = Color3.fromRGB(40, 140, 80)
+			circle.Position = UDim2.new(1, -21, 0.5, -9)
+			circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		else
+			toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+			circle.Position = UDim2.new(0, 3, 0.5, -9)
+			circle.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+		end
+		callback(enabled)
+	end)
+
+	return frame
+end
+
+local function createButton(parent, name, y, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 36)
+	btn.Position = UDim2.new(0, 0, 0, y)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+	btn.Text = name
+	btn.TextColor3 = Color3.fromRGB(230, 230, 240)
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 14
+	btn.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+-- World 1 Section
+createSection(FeaturesFrame, "World 1", 0)
+createToggle(FeaturesFrame, "Auto Farm Wins", 28, function(Value)
+	getgenv().farm1 = Value
+	while getgenv().farm1 do
+		task.wait()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(114.85, 12.78, 9503.41))
+		end
+	end
+end)
+
+createButton(FeaturesFrame, "TP To World 2", 70, function()
+	local char = player.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char:MoveTo(Vector3.new(-5377, -88, -5))
+	end
+end)
+
+-- World 2 Section
+createSection(FeaturesFrame, "World 2", 120)
+createToggle(FeaturesFrame, "Auto Farm Wins", 148, function(Value)
+	getgenv().farm2 = Value
+	while getgenv().farm2 do
+		task.wait()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char:MoveTo(Vector3.new(-5380.61, 261.45, 13183.42))
+		end
+	end
+end)
+
+createButton(FeaturesFrame, "TP To World 1", 190, function()
+	local char = player.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char:MoveTo(Vector3.new(118, 14, -8))
+	end
+end)
+
+-- ========== GAME LIST PAGE ==========
+local GameListPage = Instance.new("Frame")
+GameListPage.Name = "GameListPage"
+GameListPage.Size = UDim2.new(1, 0, 1, 0)
+GameListPage.BackgroundTransparency = 1
+GameListPage.Visible = false
+GameListPage.Parent = Content
+
+local GameListTitle = Instance.new("TextLabel")
+GameListTitle.Size = UDim2.new(1, 0, 0, 22)
+GameListTitle.BackgroundTransparency = 1
+GameListTitle.Text = "Games in this UI"
+GameListTitle.TextColor3 = Color3.fromRGB(150, 150, 165)
+GameListTitle.Font = Enum.Font.Gotham
+GameListTitle.TextSize = 12
+GameListTitle.TextXAlignment = Enum.TextXAlignment.Left
+GameListTitle.Parent = GameListPage
+
+-- First game entry
+local GameEntry = Instance.new("Frame")
+GameEntry.Size = UDim2.new(1, 0, 0, 50)
+GameEntry.Position = UDim2.new(0, 0, 0, 30)
+GameEntry.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+GameEntry.Parent = GameListPage
+
+local entryCorner = Instance.new("UICorner")
+entryCorner.CornerRadius = UDim.new(0, 8)
+entryCorner.Parent = GameEntry
+
+local entryName = Instance.new("TextLabel")
+entryName.Size = UDim2.new(1, -20, 0, 24)
+entryName.Position = UDim2.new(0, 12, 0, 4)
+entryName.BackgroundTransparency = 1
+entryName.Text = "PlaceId: 75626443136851"
+entryName.TextColor3 = Color3.fromRGB(230, 230, 240)
+entryName.Font = Enum.Font.GothamMedium
+entryName.TextSize = 14
+entryName.TextXAlignment = Enum.TextXAlignment.Left
+entryName.Parent = GameEntry
+
+local entrySub = Instance.new("TextLabel")
+entrySub.Size = UDim2.new(1, -20, 0, 18)
+entrySub.Position = UDim2.new(0, 12, 0, 28)
+entrySub.BackgroundTransparency = 1
+entrySub.Text = "World 1 & World 2 Auto Farm + TPs"
+entrySub.TextColor3 = Color3.fromRGB(140, 140, 160)
+entrySub.Font = Enum.Font.Gotham
+entrySub.TextSize = 12
+entrySub.TextXAlignment = Enum.TextXAlignment.Left
+entrySub.Parent = GameEntry
+
+-- ========== SETTINGS PAGE ==========
+local SettingsPage = Instance.new("Frame")
+SettingsPage.Name = "SettingsPage"
+SettingsPage.Size = UDim2.new(1, 0, 1, 0)
+SettingsPage.BackgroundTransparency = 1
+SettingsPage.Visible = false
+SettingsPage.Parent = Content
+
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, 0, 0, 22)
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Text = "Theme"
+SettingsTitle.TextColor3 = Color3.fromRGB(150, 150, 165)
+SettingsTitle.Font = Enum.Font.Gotham
+SettingsTitle.TextSize = 12
+SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettingsTitle.Parent = SettingsPage
+
+local themes = {
+	{Name = "Dark", Color = Color3.fromRGB(18, 18, 22)},
+	{Name = "Midnight", Color = Color3.fromRGB(12, 14, 24)},
+	{Name = "Purple", Color = Color3.fromRGB(22, 16, 28)},
+	{Name = "Blue", Color = Color3.fromRGB(14, 18, 28)},
+}
+
+local function applyTheme(bgColor)
+	Main.BackgroundColor3 = bgColor
+	TitleBar.BackgroundColor3 = Color3.new(
+		math.clamp(bgColor.R + 0.03, 0, 1),
+		math.clamp(bgColor.G + 0.03, 0, 1),
+		math.clamp(bgColor.B + 0.04, 0, 1)
+	)
+	TitleFix.BackgroundColor3 = TitleBar.BackgroundColor3
+end
+
+for i, theme in ipairs(themes) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 36)
+	btn.Position = UDim2.new(0, 0, 0, 30 + (i - 1) * 44)
+	btn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+	btn.Text = theme.Name
+	btn.TextColor3 = Color3.fromRGB(220, 220, 230)
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 14
+	btn.Parent = SettingsPage
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		applyTheme(theme.Color)
+	end)
+end
+
+-- ========== MISC PAGE ==========
+local MiscPage = Instance.new("Frame")
+MiscPage.Name = "MiscPage"
+MiscPage.Size = UDim2.new(1, 0, 1, 0)
+MiscPage.BackgroundTransparency = 1
+MiscPage.Visible = false
+MiscPage.Parent = Content
+
+local MiscTitle = Instance.new("TextLabel")
+MiscTitle.Size = UDim2.new(1, 0, 0, 22)
+MiscTitle.BackgroundTransparency = 1
+MiscTitle.Text = "WalkSpeed"
+MiscTitle.TextColor3 = Color3.fromRGB(150, 150, 165)
+MiscTitle.Font = Enum.Font.Gotham
+MiscTitle.TextSize = 12
+MiscTitle.TextXAlignment = Enum.TextXAlignment.Left
+MiscTitle.Parent = MiscPage
+
+-- Current value display
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 28)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Current: 16"
+SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextSize = 18
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedLabel.Parent = MiscPage
+
+-- Input box
+local SpeedInput = Instance.new("TextBox")
+SpeedInput.Size = UDim2.new(1, 0, 0, 40)
+SpeedInput.Position = UDim2.new(0, 0, 0, 65)
+SpeedInput.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+SpeedInput.Text = "16"
+SpeedInput.PlaceholderText = "Enter speed (1 - 500)"
+SpeedInput.TextColor3 = Color3.fromRGB(230, 230, 240)
+SpeedInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+SpeedInput.Font = Enum.Font.Gotham
+SpeedInput.TextSize = 15
+SpeedInput.ClearTextOnFocus = false
+SpeedInput.Parent = MiscPage
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 8)
+inputCorner.Parent = SpeedInput
+
+-- Apply button
+local ApplyBtn = Instance.new("TextButton")
+ApplyBtn.Size = UDim2.new(1, 0, 0, 40)
+ApplyBtn.Position = UDim2.new(0, 0, 0, 115)
+ApplyBtn.BackgroundColor3 = Color3.fromRGB(35, 90, 55)
+ApplyBtn.Text = "Apply WalkSpeed"
+ApplyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ApplyBtn.Font = Enum.Font.GothamMedium
+ApplyBtn.TextSize = 15
+ApplyBtn.Parent = MiscPage
+
+local applyCorner = Instance.new("UICorner")
+applyCorner.CornerRadius = UDim.new(0, 8)
+applyCorner.Parent = ApplyBtn
+
+-- Reset button
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(1, 0, 0, 36)
+ResetBtn.Position = UDim2.new(0, 0, 0, 165)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 40)
+ResetBtn.Text = "Reset to 16"
+ResetBtn.TextColor3 = Color3.fromRGB(220, 180, 180)
+ResetBtn.Font = Enum.Font.Gotham
+ResetBtn.TextSize = 14
+ResetBtn.Parent = MiscPage
+
+local resetCorner = Instance.new("UICorner")
+resetCorner.CornerRadius = UDim.new(0, 8)
+resetCorner.Parent = ResetBtn
+
+local function setWalkSpeed(speed)
+	speed = math.clamp(tonumber(speed) or 16, 1, 500)
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = speed
+		end
+	end
+	SpeedLabel.Text = "Current: " .. tostring(speed)
+	SpeedInput.Text = tostring(speed)
+end
+
+ApplyBtn.MouseButton1Click:Connect(function()
+	setWalkSpeed(SpeedInput.Text)
+end)
+
+ResetBtn.MouseButton1Click:Connect(function()
+	setWalkSpeed(16)
+end)
+
+SpeedInput.FocusLost:Connect(function(enter)
+	if enter then
+		setWalkSpeed(SpeedInput.Text)
+	end
+end)
+
+-- Keep speed when character respawns
+player.CharacterAdded:Connect(function(char)
+	task.wait(0.5)
+	local speed = tonumber(SpeedInput.Text) or 16
+	if speed ~= 16 then
+		local hum = char:WaitForChild("Humanoid", 5)
+		if hum then
+			hum.WalkSpeed = math.clamp(speed, 1, 500)
+		end
+	end
+end)
+
+-- Tab switching
+local function switchTab(selected)
+	GamePage.Visible = (selected == "Game")
+	GameListPage.Visible = (selected == "Game List")
+	SettingsPage.Visible = (selected == "Settings")
+	MiscPage.Visible = (selected == "Misc")
+
+	local tabs = {
+		["Game"] = GameTab,
+		["Game List"] = GameListTab,
+		["Settings"] = SettingsTab,
+		["Misc"] = MiscTab,
+	}
+
+	for name, tab in pairs(tabs) do
+		if name == selected then
+			tab.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
+			tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+		else
+			tab.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+			tab.TextColor3 = Color3.fromRGB(180, 180, 195)
+		end
+	end
+end
+
+GameTab.MouseButton1Click:Connect(function() switchTab("Game") end)
+GameListTab.MouseButton1Click:Connect(function() switchTab("Game List") end)
+SettingsTab.MouseButton1Click:Connect(function() switchTab("Settings") end)
+MiscTab.MouseButton1Click:Connect(function() switchTab("Misc") end)
+
+-- Detect current game
+local SUPPORTED_GAMES = {
+	[75626443136851] = true,
+}
+
+local success, info = pcall(function()
+	return MarketplaceService:GetProductInfo(game.PlaceId)
+end)
+
+if success and info then
+	GameNameLabel.Text = info.Name
+else
+	GameNameLabel.Text = "Unknown Game"
+end
+
+if SUPPORTED_GAMES[game.PlaceId] then
+	NotAddedLabel.Visible = false
+	FeaturesFrame.Visible = true
+else
+	NotAddedLabel.Visible = true
+	FeaturesFrame.Visible = false
+end
+
+-- Dragging
+local dragging, dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Start on Game tab
+switchTab("Game")
