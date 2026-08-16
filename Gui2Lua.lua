@@ -1,0 +1,379 @@
+--[[
+    Gui2Lua - Rayfield Edition
+    Owners: Eyfanboy09, TheSledM
+    Converts any GUI (ScreenGui or any GuiObject tree) into pure Lua code
+    and saves it to Device Storage under Gui2Lua/<GuiName>.lua
+    Works on PC, Laptop, Mobile, Tablet, iPhone
+]]
+
+-- Load Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Services
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Make sure folder exists
+if isfolder and not isfolder("Gui2Lua") then
+    makefolder("Gui2Lua")
+end
+
+-- ============================================================
+-- SERIALIZER
+-- ============================================================
+
+local Gui2Lua = {}
+Gui2Lua.Counters = {}
+
+Gui2Lua.Properties = {
+    -- Common GuiObject
+    "Name", "Parent", "Visible", "Active", "ZIndex", "LayoutOrder",
+    "Size", "Position", "AnchorPoint", "Rotation", "ClipsDescendants",
+    "BackgroundColor3", "BackgroundTransparency", "BorderColor3",
+    "BorderSizePixel", "BorderMode", "SizeConstraint", "AutomaticSize",
+    "Interactable", "Selectable", "SelectionOrder",
+
+    -- Text
+    "Text", "TextColor3", "TextSize", "TextTransparency", "TextStrokeColor3",
+    "TextStrokeTransparency", "TextWrapped", "TextScaled", "TextXAlignment",
+    "TextYAlignment", "Font", "FontFace", "RichText", "LineHeight",
+    "TextTruncate", "MaxVisibleGraphemes", "PlaceholderText", "PlaceholderColor3",
+    "ClearTextOnFocus", "MultiLine", "TextEditable", "ShowNativeInput",
+
+    -- Image
+    "Image", "ImageColor3", "ImageTransparency", "ImageRectOffset",
+    "ImageRectSize", "ScaleType", "SliceCenter", "SliceScale", "TileSize",
+    "ResampleMode",
+
+    -- Button
+    "AutoButtonColor", "Modal",
+
+    -- ScrollingFrame
+    "CanvasSize", "CanvasPosition", "ScrollingEnabled", "ScrollingDirection",
+    "ScrollBarThickness", "ScrollBarImageColor3", "ScrollBarImageTransparency",
+    "HorizontalScrollBarInset", "VerticalScrollBarInset", "VerticalScrollBarPosition",
+    "ElasticBehavior", "TopImage", "MidImage", "BottomImage",
+
+    -- UICorner / UIPadding / UIStroke / UIGradient / UIListLayout etc.
+    "CornerRadius",
+    "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight",
+    "Thickness", "ApplyStrokeMode", "Color", "Transparency",
+    "Offset", "Rotation", "ColorSequence", "TransparencySequence",
+    "SortOrder", "FillDirection", "HorizontalAlignment", "VerticalAlignment",
+    "Padding", "ItemLineAlignment",
+    "Scale",
+    "GroupTransparency", "GroupColor3",
+
+    -- ScreenGui / SurfaceGui / BillboardGui
+    "Enabled", "ResetOnSpawn", "ZIndexBehavior", "IgnoreGuiInset",
+    "DisplayOrder", "ClipToDeviceSafeArea", "SafeAreaCompatibility",
+    "ScreenInsets", "AlwaysOnTop", "LightInfluence", "MaxDistance",
+    "SizeOffset", "StudsOffset", "StudsOffsetWorldSpace", "ExtentsOffset",
+    "ExtentsOffsetWorldSpace", "Adornee",
+
+    -- ViewportFrame
+    "CurrentCamera", "ImageTransparency", "Ambient", "LightColor", "LightDirection",
+
+    -- VideoFrame
+    "Video", "Looped", "Playing", "Volume", "TimePosition",
+
+    -- UIAspectRatioConstraint / UISizeConstraint / UITextSizeConstraint
+    "AspectRatio", "AspectType", "DominantAxis",
+    "MaxSize", "MinSize",
+    "MaxTextSize", "MinTextSize",
+
+    -- UIGridLayout / UIPageLayout / UITableLayout
+    "CellSize", "CellPadding", "StartCorner", "FillDirectionMaxCells",
+    "Animated", "Circular", "EasingDirection", "EasingStyle", "GamepadInputEnabled",
+    "ScrollWheelInputEnabled", "TouchInputEnabled", "TweenTime",
+    "FillEmptySpaceColumns", "FillEmptySpaceRows", "MajorAxis",
+
+    -- Other
+    "AbsoluteSize", "AbsolutePosition", "AbsoluteRotation", -- read-only, skipped later
+}
+
+Gui2Lua.Serializers = {
+    Color3 = function(c)
+        return string.format("Color3.fromRGB(%d, %d, %d)",
+            math.floor(c.R * 255 + 0.5),
+            math.floor(c.G * 255 + 0.5),
+            math.floor(c.B * 255 + 0.5))
+    end,
+
+    UDim2 = function(u)
+        return string.format("UDim2.new(%s, %s, %s, %s)",
+            u.X.Scale, u.X.Offset, u.Y.Scale, u.Y.Offset)
+    end,
+
+    UDim = function(u)
+        return string.format("UDim.new(%s, %s)", u.Scale, u.Offset)
+    end,
+
+    Vector2 = function(v)
+        return string.format("Vector2.new(%s, %s)", v.X, v.Y)
+    end,
+
+    Vector3 = function(v)
+        return string.format("Vector3.new(%s, %s, %s)", v.X, v.Y, v.Z)
+    end,
+
+    Rect = function(r)
+        return string.format("Rect.new(%s, %s, %s, %s)",
+            r.Min.X, r.Min.Y, r.Max.X, r.Max.Y)
+    end,
+
+    NumberRange = function(n)
+        return string.format("NumberRange.new(%s, %s)", n.Min, n.Max)
+    end,
+
+    NumberSequence = function(ns)
+        local keypoints = {}
+        for _, kp in ipairs(ns.Keypoints) do
+            table.insert(keypoints, string.format(
+                "NumberSequenceKeypoint.new(%s, %s, %s)",
+                kp.Time, kp.Value, kp.Envelope))
+        end
+        return "NumberSequence.new({" .. table.concat(keypoints, ", ") .. "})"
+    end,
+
+    ColorSequence = function(cs)
+        local keypoints = {}
+        for _, kp in ipairs(cs.Keypoints) do
+            table.insert(keypoints, string.format(
+                "ColorSequenceKeypoint.new(%s, Color3.fromRGB(%d, %d, %d))",
+                kp.Time,
+                math.floor(kp.Value.R * 255 + 0.5),
+                math.floor(kp.Value.G * 255 + 0.5),
+                math.floor(kp.Value.B * 255 + 0.5)))
+        end
+        return "ColorSequence.new({" .. table.concat(keypoints, ", ") .. "})"
+    end,
+
+    Font = function(f)
+        if typeof(f) == "Font" then
+            return string.format('Font.new(%q, Enum.FontWeight.%s, Enum.FontStyle.%s)',
+                f.Family, f.Weight.Name, f.Style.Name)
+        end
+        return "Enum.Font." .. tostring(f):gsub("Enum.Font.", "")
+    end,
+
+    EnumItem = function(e)
+        return tostring(e)
+    end,
+
+    Enum = function(e)
+        return tostring(e)
+    end,
+
+    boolean = function(b)
+        return tostring(b)
+    end,
+
+    number = function(n)
+        return tostring(n)
+    end,
+
+    string = function(s)
+        return string.format("%q", s)
+    end,
+
+    Instance = function(i)
+        -- We only serialize Parent as a variable name later
+        return nil
+    end,
+}
+
+function Gui2Lua:GenerateName(className)
+    self.Counters[className] = (self.Counters[className] or 0) + 1
+    return className .. "_" .. self.Counters[className]
+end
+
+function Gui2Lua:SerializeValue(value)
+    local t = typeof(value)
+    local serializer = self.Serializers[t]
+    if serializer then
+        return serializer(value)
+    end
+    return nil
+end
+
+function Gui2Lua:SerializeObject(object, parentVarName)
+    local lines = {}
+    local varName = self:GenerateName(object.ClassName)
+
+    table.insert(lines, string.format('local %s = Instance.new(%q)', varName, object.ClassName))
+
+    -- Set all properties
+    for _, prop in ipairs(self.Properties) do
+        if prop == "Parent" then continue end
+        local success, value = pcall(function()
+            return object[prop]
+        end)
+        if success and value ~= nil then
+            -- Skip read-only / default junk
+            if prop == "AbsoluteSize" or prop == "AbsolutePosition" or prop == "AbsoluteRotation" then
+                continue
+            end
+            local serialized = self:SerializeValue(value)
+            if serialized then
+                table.insert(lines, string.format("%s.%s = %s", varName, prop, serialized))
+            end
+        end
+    end
+
+    -- Parent
+    if parentVarName then
+        table.insert(lines, string.format("%s.Parent = %s", varName, parentVarName))
+    else
+        table.insert(lines, string.format("%s.Parent = game:GetService(\"Players\").LocalPlayer:WaitForChild(\"PlayerGui\")", varName))
+    end
+
+    -- Children
+    for _, child in ipairs(object:GetChildren()) do
+        local childCode = self:SerializeObject(child, varName)
+        table.insert(lines, childCode)
+    end
+
+    return table.concat(lines, "\n")
+end
+
+function Gui2Lua:Convert(pathString)
+    self.Counters = {} -- reset
+
+    local success, gui = pcall(function()
+        return loadstring("return " .. pathString)()
+    end)
+
+    if not success or not gui or not gui:IsA("Instance") then
+        print("[Gui2Lua] Error: Invalid or wrong path. Could not find Instance.")
+        print("[Gui2Lua] Path tried: " .. tostring(pathString))
+        return false
+    end
+
+    local code = "-- Generated by Gui2Lua (Owners: Eyfanboy09, TheSledM)\n"
+    code = code .. "-- Path: " .. pathString .. "\n"
+    code = code .. "-- Date: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n"
+    code = code .. self:SerializeObject(gui)
+
+    local fileName = "Gui2Lua/" .. gui.Name .. ".lua"
+
+    -- If file already exists we still overwrite with the new full script
+    local writeSuccess, writeErr = pcall(function()
+        writefile(fileName, code)
+    end)
+
+    if writeSuccess then
+        print("[Gui2Lua] Successfully saved → " .. fileName)
+        return true, fileName
+    else
+        print("[Gui2Lua] Failed to write file: " .. tostring(writeErr))
+        return false
+    end
+end
+
+-- ============================================================
+-- RAYFIELD UI
+-- ============================================================
+
+local Window = Rayfield:CreateWindow({
+    Name = "Gui2Lua",
+    LoadingTitle = "Gui2Lua Converter",
+    LoadingSubtitle = "by Eyfanboy09 & TheSledM",
+    ConfigurationSaving = {
+        Enabled = false,
+    },
+    Discord = {
+        Enabled = false,
+    },
+    KeySystem = false,
+})
+
+-- ==================== HOME TAB ====================
+local HomeTab = Window:CreateTab("Home", 4483362458) -- Home icon
+
+local HomeSection = HomeTab:CreateSection("Convert GUI to Lua")
+
+local PathInput = HomeTab:CreateInput({
+    Name = "GUI Path",
+    PlaceholderText = "Example: game.Players.LocalPlayer.PlayerGui.MyScreenGui",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        -- just store
+    end,
+})
+
+local ConvertButton = HomeTab:CreateButton({
+    Name = "Convert!",
+    Callback = function()
+        local path = PathInput.CurrentValue or PathInput.Input or ""
+
+        -- Try to get the current text from the input element
+        -- Rayfield stores it differently depending on version
+        if typeof(PathInput) == "table" then
+            if PathInput.CurrentValue then
+                path = PathInput.CurrentValue
+            elseif PathInput.Input then
+                path = PathInput.Input
+            end
+        end
+
+        -- Fallback: try to read from the actual TextBox if possible
+        if path == "" or path == nil then
+            -- Last resort - some Rayfield versions keep it in Flags
+            path = Rayfield.Flags and Rayfield.Flags["GUI Path"] and Rayfield.Flags["GUI Path"].CurrentValue or ""
+        end
+
+        path = tostring(path):gsub("^%s+", ""):gsub("%s+$", "")
+
+        if path == "" then
+            print("[Gui2Lua] Error: No path entered.")
+            return
+        end
+
+        local ok, result = Gui2Lua:Convert(path)
+        if ok then
+            Rayfield:Notify({
+                Title = "Success!",
+                Content = "Saved to " .. tostring(result),
+                Duration = 5,
+                Image = 4483362458,
+            })
+        end
+        -- On error we already printed, no notification as requested
+    end,
+})
+
+HomeTab:CreateParagraph({
+    Title = "How to use",
+    Content = "1. Enter the full path to your ScreenGui or any GuiObject\n2. Press Convert!\n3. File will appear in Device Storage → Gui2Lua folder\n4. Works on Mobile / Tablet / iPhone / PC / Laptop",
+})
+
+-- ==================== OWNER TAB ====================
+local OwnerTab = Window:CreateTab("Owner", 7733964719)
+
+local OwnerSection = OwnerTab:CreateSection("Script Owners")
+
+OwnerTab:CreateButton({
+    Name = "Owner",
+    Callback = function()
+        print("=================================")
+        print("Gui2Lua Owners:")
+        print("• Eyfanboy09")
+        print("• TheSledM")
+        print("=================================")
+    end,
+})
+
+OwnerTab:CreateParagraph({
+    Title = "Credits",
+    Content = "This Gui2Lua tool was created by Eyfanboy09 and TheSledM.\nSupports every common GuiObject type and property.",
+})
+
+-- Final load message
+print("[Gui2Lua] Loaded successfully | Owners: Eyfanboy09, TheSledM")
+Rayfield:Notify({
+    Title = "Gui2Lua Ready",
+    Content = "Enter a path and press Convert!",
+    Duration = 4,
+})
