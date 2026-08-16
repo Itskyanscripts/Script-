@@ -1,12 +1,3 @@
---[[
-    Gui2Lua - Rayfield Edition
-    Owners: Eyfanboy09, TheSledM
-    Converts any GUI (ScreenGui or any GuiObject tree) into pure Lua code
-    and saves it to Device Storage under Gui2Lua/<GuiName>.lua
-    Works on PC, Laptop, Mobile, Tablet, iPhone
-]]
-
--- Load Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- Services
