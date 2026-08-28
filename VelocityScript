@@ -1,0 +1,1687 @@
+local TweenService = game:GetService("TweenService")
+local TextService = game:GetService("TextService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+
+local funScripts = {
+    {
+        Name = "Infinite Yield FE.lua",
+        src = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()]]
+    },
+
+    {
+        Name = "Sirius.lua",
+        src = [[loadstring(game:HttpGet('https://sirius.menu/sirius'))()]]
+    }
+}
+
+local favScripts = {
+    {
+        Name = "Dark Dex,lua",
+        src = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()]]
+    },
+
+    {
+        Name = "Hydroxide.lua",
+        src = [[
+local owner = "Upbolt"
+local branch = "revision"
+
+local function webImport(file)
+    return loadstring(game:HttpGetAsync(("https://raw.githubusercontent.com/%s/Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
+end
+
+webImport("init")
+webImport("ui/main")
+        ]]
+    }
+}
+
+if not isfolder("InternalVelocity") then
+    makefolder("InternalVelocity")
+end
+if not isfolder("InternalVelocity/SavedLogs") then
+    makefolder("InternalVelocity/SavedLogs")
+end
+
+local FONT_FOLDER = "InternalVelocity/Fonts"
+if not isfolder(FONT_FOLDER) then
+    makefolder(FONT_FOLDER)
+end
+
+local function registerFont(fontName, faces)
+    local jsonPath = FONT_FOLDER .. "/" .. fontName .. ".json"
+    local familyFaces = {}
+
+    for _, faceData in ipairs(faces) do
+        local localPath = FONT_FOLDER .. "/" .. faceData.file
+        if not isfile(localPath) then
+            error(("font file missing: %s"):format(localPath))
+        end
+
+        table.insert(familyFaces, {
+            name = faceData.name,
+            weight = faceData.weight,
+            style = faceData.style,
+            assetId = getcustomasset(localPath)
+        })
+    end
+
+    writefile(jsonPath, HttpService:JSONEncode({
+        name = fontName,
+        faces = familyFaces
+    }))
+
+    return getcustomasset(jsonPath)
+end
+
+local keepCalmMedium = registerFont("KeepCalm-Medium", {
+    {
+        name = "Bold",
+        weight = 700,
+        style = "normal",
+        file = "KeepCalm-Medium.ttf",
+    }
+})
+
+local Arial = registerFont("ARIAL", {
+    {
+        name = "Regular",
+        weight = 400,
+        style = "normal",
+        file = "ARIAL.TTF",
+    }
+})
+
+local JetbrainsMono = registerFont("JetbrainsMono", {
+    {
+        name = "Regular",
+        weight = 400,
+        style = "normal",
+        file = "JetBrainsMono-SemiBold.ttf",
+    }
+})
+
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = gethui()
+
+local Frame = Instance.new("CanvasGroup")
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame.Name = "Frame"
+Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame.Size = UDim2.new(0, 920, 0, 620)
+Frame.BorderSizePixel = 0
+Frame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+Frame.Parent = ScreenGui
+
+local UIShadow = Instance.new("UIShadow")
+UIShadow.Offset = UDim2.new(0, 2, 0, 2)
+UIShadow.Transparency = 0.2800000011920929
+UIShadow.BlurRadius = UDim.new(0, 3)
+UIShadow.Parent = Frame
+
+local TopBar = Instance.new("Frame")
+TopBar.AnchorPoint = Vector2.new(0.5, 0)
+TopBar.Name = "TopBar"
+TopBar.Position = UDim2.new(0.5, 0, 0, 0)
+TopBar.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TopBar.Size = UDim2.new(0, 920, 0, 35)
+TopBar.BorderSizePixel = 0
+TopBar.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+TopBar.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.Parent = TopBar
+UIStroke.ZIndex = 10
+
+local VeloLogo = Instance.new("ImageLabel")
+VeloLogo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+VeloLogo.Name = "VeloLogo"
+VeloLogo.AnchorPoint = Vector2.new(0, 0.5)
+VeloLogo.Image = "rbxassetid://111116614471209"
+VeloLogo.BackgroundTransparency = 1
+VeloLogo.Position = UDim2.new(0.00800000037997961, 0, 0.5, 0)
+VeloLogo.Size = UDim2.new(0, 24, 0, 24)
+VeloLogo.BorderSizePixel = 0
+VeloLogo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+VeloLogo.ImageColor3 = Color3.fromRGB(179, 179, 179)
+VeloLogo.Parent = TopBar
+
+local Versionn = Instance.new("TextLabel")
+Versionn.TextWrapped = true
+Versionn.TextColor3 = Color3.fromRGB(127, 127, 127)
+Versionn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Versionn.Text = "1.1.4"
+Versionn.Name = "Version"
+Versionn.Size = UDim2.new(0, 110, 0, 16)
+Versionn.AnchorPoint = Vector2.new(0.5, 0.5)
+Versionn.BorderSizePixel = 0
+Versionn.BackgroundTransparency = 1
+Versionn.Position = UDim2.new(0.5, 0, 0.5, 0)
+Versionn.FontFace = Font.new(keepCalmMedium, Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+Versionn.TextSize = 10
+Versionn.TextScaled = true
+Versionn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Versionn.Parent = TopBar
+
+local ButtonsContainer = Instance.new("Frame")
+ButtonsContainer.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ButtonsContainer.AnchorPoint = Vector2.new(1, 0)
+ButtonsContainer.BackgroundTransparency = 1
+ButtonsContainer.Position = UDim2.new(1, 0, 0, 0)
+ButtonsContainer.Name = "ButtonsContainer"
+ButtonsContainer.Size = UDim2.new(0, 153, 0, 35)
+ButtonsContainer.BorderSizePixel = 0
+ButtonsContainer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ButtonsContainer.Parent = TopBar
+
+local Minimize = Instance.new("ImageButton")
+Minimize.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Minimize.AutoButtonColor = false
+Minimize.AnchorPoint = Vector2.new(1, 0)
+Minimize.BackgroundTransparency = 1
+Minimize.Position = UDim2.new(1, 0, 0, 0)
+Minimize.Name = "Minimize"
+Minimize.Size = UDim2.new(0, 45, 0, 35)
+Minimize.BorderSizePixel = 0
+Minimize.BackgroundColor3 = Color3.fromRGB(57, 57, 57)
+Minimize.Parent = ButtonsContainer
+
+local ico = Instance.new("ImageLabel")
+ico.ScaleType = Enum.ScaleType.Fit
+ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ico.Name = "ico"
+ico.AnchorPoint = Vector2.new(0.5, 0.5)
+ico.Image = "rbxassetid://88396938293530"
+ico.BackgroundTransparency = 1
+ico.Position = UDim2.new(0.5, 0, 0.5, 0)
+ico.Size = UDim2.new(0, 19, 0, 19)
+ico.BorderSizePixel = 0
+ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ico.Parent = Minimize
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ButtonsContainer
+
+local Maximize = Instance.new("ImageButton")
+Maximize.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Maximize.AutoButtonColor = false
+Maximize.AnchorPoint = Vector2.new(1, 0)
+Maximize.BackgroundTransparency = 1
+Maximize.Position = UDim2.new(1, 0, 0, 0)
+Maximize.Name = "Maximize"
+Maximize.Size = UDim2.new(0, 45, 0, 35)
+Maximize.BorderSizePixel = 0
+Maximize.BackgroundColor3 = Color3.fromRGB(57, 57, 57)
+Maximize.Parent = ButtonsContainer
+
+local ico = Instance.new("ImageLabel")
+ico.ScaleType = Enum.ScaleType.Fit
+ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ico.Name = "ico"
+ico.AnchorPoint = Vector2.new(0.5, 0.5)
+ico.Image = "rbxassetid://110549229595156"
+ico.BackgroundTransparency = 1
+ico.Position = UDim2.new(0.5, 0, 0.5, 0)
+ico.Size = UDim2.new(0, 19, 0, 19)
+ico.BorderSizePixel = 0
+ico.BackgroundColor3 = Color3.fromRGB(57, 57, 57)
+ico.Parent = Maximize
+
+local Exit = Instance.new("ImageButton")
+Exit.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Exit.AutoButtonColor = false
+Exit.AnchorPoint = Vector2.new(1, 0)
+Exit.BackgroundTransparency = 1
+Exit.Position = UDim2.new(1, 0, 0, 0)
+Exit.Name = "Exit"
+Exit.Size = UDim2.new(0, 45, 0, 35)
+Exit.BorderSizePixel = 0
+Exit.BackgroundColor3 = Color3.fromRGB(232, 17, 35)
+Exit.Parent = ButtonsContainer
+
+local ico = Instance.new("ImageLabel")
+ico.ScaleType = Enum.ScaleType.Fit
+ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ico.Name = "ico"
+ico.AnchorPoint = Vector2.new(0.5, 0.5)
+ico.Image = "rbxassetid://104385908921328"
+ico.BackgroundTransparency = 1
+ico.Position = UDim2.new(0.5, 0, 0.5, 0)
+ico.Size = UDim2.new(0, 19, 0, 19)
+ico.BorderSizePixel = 0
+ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ico.Parent = Exit
+
+local SearchExplorer = Instance.new("Frame")
+SearchExplorer.AnchorPoint = Vector2.new(0.5, 0)
+SearchExplorer.Name = "SearchExplorer"
+SearchExplorer.Position = UDim2.new(0.16793477535247803, -1, 0.05645161122083664, 0)
+SearchExplorer.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SearchExplorer.Size = UDim2.new(0, 310, 0, 41)
+SearchExplorer.BorderSizePixel = 0
+SearchExplorer.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+SearchExplorer.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+UIStroke.Parent = SearchExplorer
+UIStroke.ZIndex = 10
+
+local SearchIco = Instance.new("ImageLabel")
+SearchIco.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SearchIco.Name = "SearchIco"
+SearchIco.AnchorPoint = Vector2.new(0, 0.5)
+SearchIco.Image = "rbxassetid://122086195900803"
+SearchIco.BackgroundTransparency = 1
+SearchIco.Position = UDim2.new(0.020944934338331223, 0, 0.5, 0)
+SearchIco.Size = UDim2.new(0, 24, 0, 24)
+SearchIco.BorderSizePixel = 0
+SearchIco.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SearchIco.Parent = SearchExplorer
+
+local SearchInp = Instance.new("TextBox")
+SearchInp.FontFace = Font.new(Arial, Enum.FontWeight.Regular, Enum.FontStyle.Italic)
+SearchInp.AnchorPoint = Vector2.new(0, 0.5)
+SearchInp.PlaceholderColor3 = Color3.fromRGB(72, 72, 72)
+SearchInp.TextColor3 = Color3.fromRGB(180, 180, 180)
+SearchInp.PlaceholderText = "Search Explorer.."
+SearchInp.TextSize = 14
+SearchInp.Size = UDim2.new(0, 221, 0, 16)
+SearchInp.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SearchInp.Text = ""
+SearchInp.Position = UDim2.new(0.12600000202655792, 0, 0.5, 0)
+SearchInp.CursorPosition = -1
+SearchInp.BackgroundTransparency = 1
+SearchInp.TextXAlignment = Enum.TextXAlignment.Left
+SearchInp.BorderSizePixel = 0
+SearchInp.TextWrapped = true
+SearchInp.TextScaled = true
+SearchInp.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SearchInp.Parent = SearchExplorer
+
+local RefreshBtn = Instance.new("ImageButton")
+RefreshBtn.Active = false
+RefreshBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+RefreshBtn.Name = "RefreshBtn"
+RefreshBtn.Size = UDim2.new(0, 24, 0, 24)
+RefreshBtn.AnchorPoint = Vector2.new(1, 0.5)
+RefreshBtn.Image = "rbxassetid://86753035047567"
+RefreshBtn.BackgroundTransparency = 1
+RefreshBtn.Position = UDim2.new(0.9599999785423279, 0, 0.5, 0)
+RefreshBtn.Selectable = false
+RefreshBtn.BorderSizePixel = 0
+RefreshBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+RefreshBtn.Parent = SearchExplorer
+
+local Explorer = Instance.new("Frame")
+Explorer.AnchorPoint = Vector2.new(0.5, 1)
+Explorer.Name = "Explorer"
+Explorer.Position = UDim2.new(0.1679999977350235, -1, 1, 1)
+Explorer.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Explorer.Size = UDim2.new(0, 310, 0, 546)
+Explorer.BorderSizePixel = 0
+Explorer.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+Explorer.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+UIStroke.Parent = Explorer
+UIStroke.ZIndex = 10
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = Explorer
+
+local Output = Instance.new("Frame")
+Output.AnchorPoint = Vector2.new(0.5, 1)
+Output.Name = "Output"
+Output.Position = UDim2.new(0.6677030920982361, 0, 1, 0)
+Output.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Output.Size = UDim2.new(0, 611, 0, 129)
+Output.BorderSizePixel = 0
+Output.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+Output.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.Parent = Output
+UIStroke.ZIndex = 10
+
+local Top = Instance.new("Frame")
+Top.Name = "Top"
+Top.BackgroundTransparency = 1
+Top.Position = UDim2.new(0, 0, 0.05000009387731552, 0)
+Top.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Top.Size = UDim2.new(0, 610, 0, 26)
+Top.BorderSizePixel = 0
+Top.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Top.Parent = Output
+
+local header = Instance.new("TextLabel")
+header.TextWrapped = true
+header.Name = "header"
+header.TextColor3 = Color3.fromRGB(180, 180, 180)
+header.BorderColor3 = Color3.fromRGB(0, 0, 0)
+header.Text = "Output"
+header.Size = UDim2.new(0, 123, 0, 18)
+header.Position = UDim2.new(0.019999999552965164, 0, 0.5, 0)
+header.AnchorPoint = Vector2.new(0, 0.5)
+header.BorderSizePixel = 0
+header.BackgroundTransparency = 1
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.TextScaled = true
+header.FontFace = Font.new(Arial, Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+header.TextSize = 14
+header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+header.Parent = Top
+
+local Buttons = Instance.new("Frame")
+Buttons.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Buttons.AnchorPoint = Vector2.new(1, 0)
+Buttons.BackgroundTransparency = 1
+Buttons.Position = UDim2.new(0.9798576235771179, 0, 0, 0)
+Buttons.Name = "Buttons"
+Buttons.Size = UDim2.new(0, 247, 0, 26)
+Buttons.BorderSizePixel = 0
+Buttons.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Buttons.Parent = Top
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = Buttons
+
+local ClearOut = Instance.new("ImageButton")
+ClearOut.ImageColor3 = Color3.fromRGB(124, 124, 124)
+ClearOut.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ClearOut.Image = "rbxassetid://100367491115342"
+ClearOut.BackgroundTransparency = 1
+ClearOut.Name = "Clear"
+ClearOut.Size = UDim2.new(0, 20, 0, 20)
+ClearOut.BorderSizePixel = 0
+ClearOut.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ClearOut.Parent = Buttons
+
+local Copy = Instance.new("ImageButton")
+Copy.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Copy.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Copy.Image = "rbxassetid://86878545872893"
+Copy.BackgroundTransparency = 1
+Copy.Name = "Copy"
+Copy.Size = UDim2.new(0, 22, 0, 22)
+Copy.BorderSizePixel = 0
+Copy.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Copy.Parent = Buttons
+
+local SaveOut = Instance.new("ImageButton")
+SaveOut.ImageColor3 = Color3.fromRGB(124, 124, 124)
+SaveOut.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SaveOut.Image = "rbxassetid://87857444303979"
+SaveOut.BackgroundTransparency = 1
+SaveOut.Name = "Save"
+SaveOut.Size = UDim2.new(0, 22, 0, 22)
+SaveOut.BorderSizePixel = 0
+SaveOut.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SaveOut.Parent = Buttons
+
+local Settings = Instance.new("ImageButton")
+Settings.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Settings.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Settings.Image = "rbxassetid://111467744253591"
+Settings.BackgroundTransparency = 1
+Settings.Name = "Settings"
+Settings.Size = UDim2.new(0, 22, 0, 22)
+Settings.BorderSizePixel = 0
+Settings.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Settings.Parent = Buttons
+
+local ContainerOut = Instance.new("ScrollingFrame")
+ContainerOut.Active = true
+ContainerOut.AnchorPoint = Vector2.new(0.5, 1)
+ContainerOut.BorderSizePixel = 0
+ContainerOut.Size = UDim2.new(0, 597, 0, 91)
+ContainerOut.ScrollBarImageColor3 = Color3.fromRGB(57, 57, 57)
+ContainerOut.MidImage = "rbxassetid://123735239902967"
+ContainerOut.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ContainerOut.ScrollBarThickness = 8
+ContainerOut.CanvasSize = UDim2.new(0, 0, 0, 0)
+ContainerOut.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ContainerOut.Name = "Container"
+ContainerOut.BackgroundTransparency = 1
+ContainerOut.Position = UDim2.new(0.5095083117485046, 0, 1, 0)
+ContainerOut.BottomImage = "rbxassetid://123735239902967"
+ContainerOut.TopImage = "rbxassetid://123735239902967"
+ContainerOut.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ContainerOut.Parent = Output
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ContainerOut
+
+local MainButtons = Instance.new("Frame")
+MainButtons.AnchorPoint = Vector2.new(0.5, 1)
+MainButtons.Name = "MainButtons"
+MainButtons.Position = UDim2.new(0.6677030920982361, 0, 0.7919355034828186, 0)
+MainButtons.BorderColor3 = Color3.fromRGB(0, 0, 0)
+MainButtons.Size = UDim2.new(0, 611, 0, 39)
+MainButtons.BorderSizePixel = 0
+MainButtons.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+MainButtons.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.Parent = MainButtons
+UIStroke.ZIndex = 10
+
+local LeftSideContainer = Instance.new("Frame")
+LeftSideContainer.BackgroundTransparency = 1
+LeftSideContainer.Name = "LeftSideContainer"
+LeftSideContainer.BorderColor3 = Color3.fromRGB(0, 0, 0)
+LeftSideContainer.Size = UDim2.new(0, 452, 0, 39)
+LeftSideContainer.BorderSizePixel = 0
+LeftSideContainer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+LeftSideContainer.Parent = MainButtons
+
+local Execute = Instance.new("ImageButton")
+Execute.BackgroundTransparency = 1
+Execute.Name = "Execute"
+Execute.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Execute.Size = UDim2.new(0, 95, 0, 39)
+Execute.BorderSizePixel = 0
+Execute.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Execute.Parent = LeftSideContainer
+
+local Ico = Instance.new("ImageLabel")
+Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ico.Name = "Ico"
+Ico.AnchorPoint = Vector2.new(0, 0.5)
+Ico.Image = "rbxassetid://108000317098010"
+Ico.BackgroundTransparency = 1
+Ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+Ico.Size = UDim2.new(0, 17, 0, 17)
+Ico.BorderSizePixel = 0
+Ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ico.Parent = Execute
+
+local Title = Instance.new("TextLabel")
+Title.TextWrapped = true
+Title.Name = "Title"
+Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "Execute"
+Title.Size = UDim2.new(0, 57, 0, 20)
+Title.Position = UDim2.new(0.3619047701358795, 0, 0.5, 0)
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.BorderSizePixel = 0
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextScaled = true
+Title.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+Title.TextSize = 14
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = Execute
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = LeftSideContainer
+
+local Clear = Instance.new("ImageButton")
+Clear.Name = "Clear"
+Clear.BackgroundTransparency = 1
+Clear.Position = UDim2.new(0.2101769894361496, 0, 0, 0)
+Clear.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Clear.Size = UDim2.new(0, 80, 0, 39)
+Clear.BorderSizePixel = 0
+Clear.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Clear.Parent = LeftSideContainer
+
+local Ico = Instance.new("ImageLabel")
+Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ico.Name = "Ico"
+Ico.AnchorPoint = Vector2.new(0, 0.5)
+Ico.Image = "rbxassetid://118287937709636"
+Ico.BackgroundTransparency = 1
+Ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+Ico.Size = UDim2.new(0, 17, 0, 17)
+Ico.BorderSizePixel = 0
+Ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ico.Parent = Clear
+
+local Title = Instance.new("TextLabel")
+Title.TextWrapped = true
+Title.Name = "Title"
+Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "Clear"
+Title.Size = UDim2.new(0, 51, 0, 20)
+Title.Position = UDim2.new(0.4369049072265625, 0, 0.5, 0)
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.BorderSizePixel = 0
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextScaled = true
+Title.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+Title.TextSize = 14
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = Clear
+
+local Open = Instance.new("ImageButton")
+Open.Name = "Open"
+Open.BackgroundTransparency = 1
+Open.Position = UDim2.new(0.2101769894361496, 0, 0, 0)
+Open.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Open.Size = UDim2.new(0, 80, 0, 39)
+Open.BorderSizePixel = 0
+Open.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Open.Parent = LeftSideContainer
+
+local Ico = Instance.new("ImageLabel")
+Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ico.Name = "Ico"
+Ico.AnchorPoint = Vector2.new(0, 0.5)
+Ico.Image = "rbxassetid://95730417142188"
+Ico.BackgroundTransparency = 1
+Ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+Ico.Size = UDim2.new(0, 17, 0, 17)
+Ico.BorderSizePixel = 0
+Ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ico.Parent = Open
+
+local Title = Instance.new("TextLabel")
+Title.TextWrapped = true
+Title.Name = "Title"
+Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "Open"
+Title.Size = UDim2.new(0, 51, 0, 20)
+Title.Position = UDim2.new(0.4369049072265625, 0, 0.5, 0)
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.BorderSizePixel = 0
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextScaled = true
+Title.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+Title.TextSize = 14
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = Open
+
+local Save = Instance.new("ImageButton")
+Save.Name = "Save"
+Save.BackgroundTransparency = 1
+Save.Position = UDim2.new(0.2101769894361496, 0, 0, 0)
+Save.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Save.Size = UDim2.new(0, 80, 0, 39)
+Save.BorderSizePixel = 0
+Save.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Save.Parent = LeftSideContainer
+
+local Ico = Instance.new("ImageLabel")
+Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ico.Name = "Ico"
+Ico.AnchorPoint = Vector2.new(0, 0.5)
+Ico.Image = "rbxassetid://87857444303979"
+Ico.BackgroundTransparency = 1
+Ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+Ico.Size = UDim2.new(0, 17, 0, 17)
+Ico.BorderSizePixel = 0
+Ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ico.Parent = Save
+
+local Title = Instance.new("TextLabel")
+Title.TextWrapped = true
+Title.Name = "Title"
+Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "Save"
+Title.Size = UDim2.new(0, 51, 0, 20)
+Title.Position = UDim2.new(0.4369049072265625, 0, 0.5, 0)
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.BorderSizePixel = 0
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextScaled = true
+Title.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+Title.TextSize = 14
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = Save
+
+local Inject = Instance.new("ImageButton")
+Inject.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Inject.AnchorPoint = Vector2.new(1, 0)
+Inject.BackgroundTransparency = 1
+Inject.Position = UDim2.new(0.98, 0, 0, 0)
+Inject.Name = "Inject"
+Inject.Size = UDim2.new(0, 80, 0, 39)
+Inject.BorderSizePixel = 0
+Inject.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Inject.Parent = MainButtons
+
+local Ico = Instance.new("ImageLabel")
+Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+Ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ico.Name = "Ico"
+Ico.AnchorPoint = Vector2.new(0, 0.5)
+Ico.Image = "rbxassetid://126199288541761"
+Ico.BackgroundTransparency = 1
+Ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+Ico.Size = UDim2.new(0, 17, 0, 17)
+Ico.BorderSizePixel = 0
+Ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ico.Parent = Inject
+
+local Title = Instance.new("TextLabel")
+Title.TextWrapped = true
+Title.Name = "Title"
+Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "Inject"
+Title.Size = UDim2.new(0, 51, 0, 20)
+Title.Position = UDim2.new(0.4369049072265625, 0, 0.5, 0)
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.BorderSizePixel = 0
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextScaled = true
+Title.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+Title.TextSize = 14
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = Inject
+
+local TabsContainer = Instance.new("Frame")
+TabsContainer.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TabsContainer.AnchorPoint = Vector2.new(1, 0)
+TabsContainer.BackgroundTransparency = 1
+TabsContainer.Position = UDim2.new(1, 0, 0.05900001525878906, 0)
+TabsContainer.Name = "TabsContainer"
+TabsContainer.Size = UDim2.new(0, 611, 0, 39)
+TabsContainer.BorderSizePixel = 0
+TabsContainer.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+TabsContainer.Parent = Frame
+
+local Container = Instance.new("ScrollingFrame")
+Container.Active = true
+Container.BorderSizePixel = 0
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+Container.ScrollBarImageColor3 = Color3.fromRGB(57, 57, 57)
+Container.MidImage = "rbxassetid://123735239902967"
+Container.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Container.ScrollBarThickness = 8
+Container.Name = "Container"
+Container.BackgroundTransparency = 1
+Container.Size = UDim2.new(0, 574, 0, 40)
+Container.BottomImage = "rbxassetid://123735239902967"
+Container.TopImage = "rbxassetid://123735239902967"
+Container.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+Container.AutomaticCanvasSize = Enum.AutomaticSize.X
+Container.Parent = TabsContainer
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = Container
+
+local NewTab = Instance.new("ImageButton")
+NewTab.ImageColor3 = Color3.fromRGB(96, 97, 99)
+NewTab.BorderColor3 = Color3.fromRGB(0, 0, 0)
+NewTab.Name = "NewTab"
+NewTab.AnchorPoint = Vector2.new(0.5, 0.5)
+NewTab.Image = "rbxassetid://137135197793108"
+NewTab.BackgroundTransparency = 1
+NewTab.Position = UDim2.new(0.9620000123977661, 0, 0.5, 0)
+NewTab.Size = UDim2.new(0, 23, 0, 23)
+NewTab.BorderSizePixel = 0
+NewTab.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+NewTab.Parent = TabsContainer
+
+local EditorFrame = Instance.new("Frame")
+EditorFrame.AnchorPoint = Vector2.new(1, 1)
+EditorFrame.Name = "EditorFrame"
+EditorFrame.Position = UDim2.new(1, 0, 0.7279999852180481, 0)
+EditorFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+EditorFrame.Size = UDim2.new(0, 611, 0, 375)
+EditorFrame.BorderSizePixel = 0
+EditorFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+EditorFrame.Parent = Frame
+
+-- Open file bs
+local OpenFile = Instance.new("Frame")
+OpenFile.BorderColor3 = Color3.fromRGB(0, 0, 0)
+OpenFile.AnchorPoint = Vector2.new(0.5, 0.5)
+OpenFile.Name = "OpenFile"
+OpenFile.Position = UDim2.new(0.5, 0, 0.5, 0)
+OpenFile.Size = UDim2.new(0, 392, 0, 120)
+OpenFile.ZIndex = 15
+OpenFile.BorderSizePixel = 0
+OpenFile.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+OpenFile.Parent = ScreenGui
+OpenFile.Visible = false
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+UIStroke.Parent = OpenFile
+
+local UIShadow = Instance.new("UIShadow")
+UIShadow.Offset = UDim2.new(0, 2, 0, 2)
+UIShadow.Transparency = 0.2800000011920929
+UIShadow.BlurRadius = UDim.new(0, 3)
+UIShadow.Parent = OpenFile
+
+local hatch = Instance.new("TextLabel")
+hatch.TextWrapped = true
+hatch.TextColor3 = Color3.fromRGB(127, 127, 127)
+hatch.BorderColor3 = Color3.fromRGB(0, 0, 0)
+hatch.Text = "Enter File Path"
+hatch.Name = "hatch"
+hatch.Size = UDim2.new(0, 141, 0, 23)
+hatch.AnchorPoint = Vector2.new(0.5, 0.5)
+hatch.BorderSizePixel = 0
+hatch.BackgroundTransparency = 1
+hatch.Position = UDim2.new(0.5, 0, 0.21699999272823334, 0)
+hatch.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+hatch.TextSize = 14
+hatch.TextScaled = true
+hatch.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+hatch.Parent = OpenFile
+
+local inpbox = Instance.new("Frame")
+inpbox.AnchorPoint = Vector2.new(0.5, 0.5)
+inpbox.Name = "inpbox"
+inpbox.Position = UDim2.new(0.5, 0, 0.6503334045410156, 0)
+inpbox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+inpbox.Size = UDim2.new(0, 306, 0, 36)
+inpbox.BorderSizePixel = 0
+inpbox.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+inpbox.Parent = OpenFile
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 25, 25)
+UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+UIStroke.Parent = inpbox
+
+local UIShadow = Instance.new("UIShadow")
+UIShadow.Offset = UDim2.new(0, 2, 0, 2)
+UIShadow.Transparency = 0.2800000011920929
+UIShadow.BlurRadius = UDim.new(0, 3)
+UIShadow.Parent = inpbox
+
+local Ignore = Instance.new("TextLabel")
+Ignore.TextWrapped = true
+Ignore.Name = "Ignore"
+Ignore.TextColor3 = Color3.fromRGB(127, 127, 127)
+Ignore.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Ignore.Text = "Workspace/"
+Ignore.Size = UDim2.new(0, 81, 0, 20)
+Ignore.Position = UDim2.new(0.1860000044107437, 0, 0.5, 0)
+Ignore.AnchorPoint = Vector2.new(0.5, 0.5)
+Ignore.BorderSizePixel = 0
+Ignore.BackgroundTransparency = 1
+Ignore.TextXAlignment = Enum.TextXAlignment.Left
+Ignore.TextScaled = true
+Ignore.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+Ignore.TextSize = 14
+Ignore.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Ignore.Parent = inpbox
+
+local FileInput = Instance.new("TextBox")
+FileInput.TextWrapped = true
+FileInput.Active = false
+FileInput.Selectable = false
+FileInput.AnchorPoint = Vector2.new(0.5, 0.5)
+FileInput.PlaceholderColor3 = Color3.fromRGB(127, 127, 127)
+FileInput.PlaceholderText = "..."
+FileInput.TextSize = 14
+FileInput.Size = UDim2.new(0, 194, 0, 20)
+FileInput.TextColor3 = Color3.fromRGB(208, 208, 208)
+FileInput.BorderColor3 = Color3.fromRGB(0, 0, 0)
+FileInput.Text = ""
+FileInput.Name = "FileInput"
+FileInput.Position = UDim2.new(0.636441171169281, 0, 0.5, 0)
+FileInput.BorderSizePixel = 0
+FileInput.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+FileInput.BackgroundTransparency = 1
+FileInput.TextXAlignment = Enum.TextXAlignment.Left
+FileInput.CursorPosition = -1
+FileInput.ClearTextOnFocus = false
+FileInput.TextScaled = true
+FileInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+FileInput.Parent = inpbox
+
+local function dragify(dragHandle, target)
+    local dragging = false
+    local dragStart
+    local startPos
+
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = target.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    dragHandle.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            target.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+dragify(TopBar, Frame)
+
+local TopButtons = {
+    Minimize,
+    Maximize,
+    Exit
+}
+
+local EditorButtons = {
+    Execute,
+    Clear,
+    Open,
+    Save,
+    Inject
+}
+
+local OutputButtons = {
+    Settings,
+    Copy,
+    SaveOut,
+    ClearOut
+}
+
+local MiscButtons = {
+    RefreshBtn,
+    NewTab
+}
+
+for i, btn in pairs(TopButtons) do
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundTransparency = 0
+    end)
+
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundTransparency = 1
+    end)
+end
+
+for i, btn in pairs(EditorButtons) do
+    local isExec = btn.Name == "Execute"
+
+    btn.MouseEnter:Connect(function()
+        btn.Title.TextColor3 = Color3.fromRGB(203, 203, 203)
+        btn.Ico.ImageColor3 = Color3.fromRGB(203, 203, 203)
+
+        btn.Title:TweenPosition(isExec and UDim2.new(0.362, 0, 0.42, 0) or UDim2.new(0.437, 0, 0.42, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.1, true)
+        btn.Ico:TweenPosition(UDim2.new(0.14, 0, 0.42, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.1, true)
+    end)
+
+    btn.MouseLeave:Connect(function()
+        btn.Title.TextColor3 = Color3.fromRGB(124, 124, 124)
+        btn.Ico.ImageColor3 = Color3.fromRGB(124, 124, 124)
+
+        btn.Title:TweenPosition(isExec and UDim2.new(0.362, 0, 0.5, 0) or UDim2.new(0.437, 0, 0.5, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.1, true)
+        btn.Ico:TweenPosition(UDim2.new(0.14, 0, 0.5, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.1, true)
+    end)
+end
+
+for i, btn in pairs(OutputButtons) do
+    btn.MouseEnter:Connect(function()
+        btn.ImageColor3 = Color3.fromRGB(203, 203, 203)
+    end)
+
+    btn.MouseLeave:Connect(function()
+        btn.ImageColor3 = Color3.fromRGB(124, 124, 124)
+    end)
+end
+
+for i, btn in pairs(MiscButtons) do
+    btn.MouseEnter:Connect(function()
+        btn.ImageColor3 = Color3.fromRGB(203, 203, 203)
+    end)
+
+    btn.MouseLeave:Connect(function()
+        btn.ImageColor3 = Color3.fromRGB(124, 124, 124)
+    end)
+end
+
+Exit.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+local function AddLog(txt)
+    local timestamp = os.date("!%H:%M:%S")
+    local OutputTemplate = Instance.new("TextLabel")
+    OutputTemplate.RichText = true
+    OutputTemplate.Name = "OutputTemplate"
+    OutputTemplate.TextColor3 = Color3.fromRGB(255, 255, 255)
+    OutputTemplate.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
+    OutputTemplate.Text = ('<font color="#afafaf">[%s] - </font>%s'):format(timestamp, txt)
+    OutputTemplate.Size = UDim2.new(0, 578, 0, 17)
+    OutputTemplate.BorderSizePixel = 0
+    OutputTemplate.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    OutputTemplate.TextSize = 14
+    OutputTemplate.BackgroundTransparency = 1
+    OutputTemplate.TextXAlignment = Enum.TextXAlignment.Left
+    OutputTemplate.TextWrapped = true
+    OutputTemplate.FontFace = Font.new(JetbrainsMono, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    OutputTemplate.TextScaled = true
+    OutputTemplate.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    OutputTemplate.Parent = ContainerOut
+end
+
+local function makeCodebox(sectName, src)
+    for i, v in pairs(EditorFrame:GetChildren()) do
+        v.Visible = false
+    end
+
+    local Container = Instance.new("ScrollingFrame")
+    Container.Active = true
+    Container.AnchorPoint = Vector2.new(0, 1)
+    Container.BorderSizePixel = 0
+    Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Container.ScrollBarImageColor3 = Color3.fromRGB(57, 57, 57)
+    Container.MidImage = "rbxassetid://123735239902967"
+    Container.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Container.ScrollBarThickness = 14
+    Container.Name = sectName
+    Container.Size = UDim2.new(0, 611, 0, 368)
+    Container.TopImage = "rbxassetid://123735239902967"
+    Container.Position = UDim2.new(0, 0, 1, 0)
+    Container.BottomImage = "rbxassetid://123735239902967"
+    Container.BackgroundTransparency = 1
+    Container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Container.Parent = EditorFrame
+
+    local Cursor = Instance.new("Frame")
+    Cursor.Size = UDim2.new(0, 2, 0, 16)
+    Cursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Cursor.BorderSizePixel = 0
+    Cursor.ZIndex = 5
+    Cursor.Visible = false
+    Cursor.Parent = Container
+    TweenService:Create(
+        Cursor,
+        TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.In, -1, true, 0.01),
+        {BackgroundTransparency = 1}
+    ):Play()
+
+    local LineCount = Instance.new("TextLabel")
+    LineCount.FontFace = Font.new(JetbrainsMono, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    LineCount.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LineCount.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    LineCount.Text = "1"
+    LineCount.Name = "LineCount"
+    LineCount.Size = UDim2.new(0, 26, 0, 16)
+    LineCount.BorderSizePixel = 0
+    LineCount.BackgroundTransparency = 1
+    LineCount.Position = UDim2.new(0.012000000104308128, 0, 0, 0)
+    LineCount.RichText = true
+    LineCount.TextYAlignment = Enum.TextYAlignment.Top
+    LineCount.TextSize = 16
+    LineCount.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    LineCount.Parent = Container
+
+    local CodeBox = Instance.new("TextBox")
+    CodeBox.MultiLine = true
+    CodeBox.CursorPosition = -1
+    CodeBox.ZIndex = 3
+    CodeBox.TextSize = 16
+    CodeBox.Size = UDim2.new(0, 555, 0, 16)
+    CodeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CodeBox.TextTransparency = 1
+    CodeBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    CodeBox.Text = src or ""
+    CodeBox.Name = "CodeBox"
+    CodeBox.FontFace = Font.new("rbxasset://fonts/families/Inconsolata.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+    CodeBox.Position = UDim2.new(0.08947274088859558, 0, 0, 0)
+    CodeBox.BorderSizePixel = 0
+    CodeBox.BackgroundTransparency = 1
+    CodeBox.TextXAlignment = Enum.TextXAlignment.Left
+    CodeBox.TextWrapped = false
+    CodeBox.ClearTextOnFocus = false
+    CodeBox.TextYAlignment = Enum.TextYAlignment.Top
+    CodeBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    CodeBox.Parent = Container
+
+    local HighlightLabel = Instance.new("TextLabel")
+    HighlightLabel.ZIndex = 2
+    HighlightLabel.TextSize = 16
+    HighlightLabel.Size = UDim2.new(0, 555, 0, 16)
+    HighlightLabel.RichText = true
+    HighlightLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HighlightLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    HighlightLabel.Text = ""
+    HighlightLabel.Name = "HighlightLabel"
+    HighlightLabel.FontFace = CodeBox.FontFace
+    HighlightLabel.Position = CodeBox.Position
+    HighlightLabel.BorderSizePixel = 0
+    HighlightLabel.BackgroundTransparency = 1
+    HighlightLabel.TextXAlignment = Enum.TextXAlignment.Left
+    HighlightLabel.TextYAlignment = Enum.TextYAlignment.Top
+    HighlightLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    HighlightLabel.Parent = Container
+    HighlightLabel.TextWrapped = false
+
+    local Measurer = Instance.new("TextLabel")
+    Measurer.Name = "Measurer"
+    Measurer.Visible = false
+    Measurer.AutomaticSize = Enum.AutomaticSize.X
+    Measurer.Size = UDim2.new(0, 0, 0, 16)
+    Measurer.TextSize = CodeBox.TextSize
+    Measurer.FontFace = CodeBox.FontFace
+    Measurer.Text = ""
+    Measurer.Parent = Container
+
+    local function esc(s)
+        s = s:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;")
+        return s
+    end
+
+    local keywords = {
+        ["local"]=true,["function"]=true,["end"]=true,["if"]=true,["then"]=true,
+        ["else"]=true,["elseif"]=true,["return"]=true,["for"]=true,["while"]=true,
+        ["do"]=true,["repeat"]=true,["until"]=true,["true"]=true,["false"]=true,
+        ["nil"]=true,["and"]=true,["or"]=true,["not"]=true,["break"]=true,
+        ["in"]=true,["continue"]=true,
+    }
+
+    local colors = {
+        keyword = "#d62279",
+        string = "#54e89c",
+        comment = "#666666",
+        number = "#d6ac22",
+        default = "#c2c2c2",
+    }
+
+    local typeColors = {
+        ["function"] = "#b688f2",
+        ["table"] = "#b688f2",
+        ["userdata"] = "#2b91af",
+        ["number"] = "#d6ac22",
+        ["string"] = "#54e89c",
+        ["boolean"] = "#d62279",
+        ["nil"] = "#d62279",
+    }
+
+    local function wordColor(w)
+        local ok, val = pcall(function() return getfenv()[w] end)
+        if ok and val ~= nil then
+            return typeColors[typeof(val)]
+        end
+    end
+
+    local function highlightLine(line)
+        local cs = line:find("%-%-")
+        local code, cmt = line, nil
+        if cs then
+            code = line:sub(1, cs-1)
+            cmt = line:sub(cs)
+        end
+
+        local out = {}
+        local i, len = 1, #code
+
+        while i <= len do
+            local c = code:sub(i,i)
+
+            if c == '"' or c == "'" then
+                local q = c
+                local j = i+1
+                while j <= len and code:sub(j,j) ~= q do
+                    if code:sub(j,j) == "\\" then j = j+1 end
+                    j = j+1
+                end
+                local str = code:sub(i, math.min(j,len))
+                out[#out+1] = ('<font color="%s">%s</font>'):format(colors.string, esc(str))
+                i = j+1
+                continue
+            end
+
+            local word, sep = code:match("^([%w_]*)([^%w_]?)", i)
+            if word ~= "" then
+                local col = colors.default
+                if keywords[word] then
+                    col = colors.keyword
+                elseif tonumber(word) then
+                    col = colors.number
+                else
+                    col = wordColor(word) or col
+                end
+                out[#out+1] = ('<font color="%s">%s</font>'):format(col, esc(word))
+                i = i + #word
+            end
+
+            if sep ~= "" then
+                out[#out+1] = esc(sep)
+                i = i + 1
+            elseif word == "" then
+                i = i + 1
+            end
+        end
+
+        if cmt then
+            out[#out+1] = ('<font color="%s">%s</font>'):format(colors.comment, esc(cmt))
+        end
+
+        return table.concat(out)
+    end
+
+    local function getCurrentLineAndCol(text, cursorPos)
+        if cursorPos <= 0 then
+            return 1, ""
+        end
+        local before = text:sub(1, cursorPos - 1)
+        local lineStart = 1
+        local lineNum = 1
+        for nlPos in before:gmatch("()\n") do
+            lineNum = lineNum + 1
+            lineStart = nlPos + 1
+        end
+        local col = before:sub(lineStart)
+        return lineNum, col
+    end
+
+    local function getLineNumber(text, cursorPos)
+        if cursorPos <= 0 then
+            return 1
+        end
+        local before = text:sub(1, cursorPos - 1)
+        local _, count = before:gsub("\n", "\n")
+        return count + 1
+    end
+
+    local function updateCursor()
+        local cursorPos = CodeBox.CursorPosition
+        if cursorPos == -1 then
+            Cursor.Visible = false
+            return
+        end
+
+        local lineNum, col = getCurrentLineAndCol(CodeBox.Text, cursorPos)
+
+        Measurer.Text = col
+        local textWidth = Measurer.TextBounds.X
+
+        Cursor.Position = UDim2.new(
+            CodeBox.Position.X.Scale, CodeBox.Position.X.Offset + textWidth,
+            0, (lineNum - 1) * 16
+        )
+        Cursor.Visible = true
+    end
+
+    local function refresh()
+        local lines = {}
+        for line in (CodeBox.Text.."\n"):gmatch("(.-)\n") do
+            lines[#lines+1] = highlightLine(line)
+        end
+        HighlightLabel.Text = table.concat(lines, "\n")
+    end
+
+    local function updateSize()
+        local _, count = CodeBox.Text:gsub("\n", "\n")
+        local totalLines = count + 1
+        local newHeight = totalLines * 16
+
+        CodeBox.Size = UDim2.new(0, CodeBox.Size.X.Offset, 0, newHeight)
+        HighlightLabel.Size = UDim2.new(0, HighlightLabel.Size.X.Offset, 0, newHeight)
+        LineCount.Size = UDim2.new(0, LineCount.Size.X.Offset, 0, newHeight)
+
+        Container.CanvasSize = UDim2.new(0, 0, 0, newHeight)
+    end
+
+    local function updateLineCount()
+        local _, count = CodeBox.Text:gsub("\n", "\n")
+        local total = count + 1
+        local activeLine = getLineNumber(CodeBox.Text, CodeBox.CursorPosition)
+
+        local nums = {}
+        for n = 1, total do
+            local color = (n == activeLine) and "rgb(198,198,198)" or "rgb(133,133,133)"
+            nums[n] = ('<font color="%s">%d</font>'):format(color, n)
+        end
+        LineCount.Text = table.concat(nums, "\n")
+    end
+
+    local LineOutline = Instance.new("Frame")
+    LineOutline.Active = true
+    LineOutline.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    LineOutline.Name = "LineOutline"
+    LineOutline.BackgroundTransparency = 1
+    LineOutline.Position = UDim2.new(0.08947274088859558, 0, 0, 0)
+    LineOutline.Size = UDim2.new(0, 555, 0, 18)
+    LineOutline.Selectable = true
+    LineOutline.BorderSizePixel = 0
+    LineOutline.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    LineOutline.ZIndex = 1
+    LineOutline.Parent = Container
+
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color = Color3.fromRGB(40, 40, 40)
+    UIStroke.Thickness = 2
+    UIStroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+    UIStroke.ZIndex = 1
+    UIStroke.Parent = LineOutline
+
+    local function updateLineOutline()
+        local cursorPos = CodeBox.CursorPosition
+        if cursorPos == -1 then
+            return
+        end
+        local lineNum = getLineNumber(CodeBox.Text, cursorPos)
+        LineOutline.Position = UDim2.new(
+            LineOutline.Position.X.Scale, LineOutline.Position.X.Offset,
+            0, (lineNum - 1) * 16 -1
+        )
+    end
+
+    CodeBox.Focused:Connect(function()
+        Cursor.Visible = true
+        updateCursor()
+    end)
+
+    CodeBox.FocusLost:Connect(function()
+        Cursor.Visible = false
+    end)
+
+    CodeBox:GetPropertyChangedSignal("CursorPosition"):Connect(function()
+        updateCursor()
+        updateLineOutline()
+        updateLineCount()
+    end)
+
+    CodeBox:GetPropertyChangedSignal("Text"):Connect(function()
+        refresh()
+        updateCursor()
+        updateLineCount()
+        updateSize()
+        updateLineOutline()
+    end)
+
+    refresh()
+    updateLineCount()
+    updateSize()
+    updateLineOutline()
+end
+
+local lastTab = 0
+local curSel = nil
+local function makeTab(tabName, src)
+    for i, v in pairs(Container:GetChildren()) do
+        if v:IsA("ImageButton") then
+            v.Toggled.Visible = false
+            v.BackgroundTransparency = 1
+        end
+    end
+    local TabBtn = Instance.new("ImageButton")
+    TabBtn.Name = tabName
+    TabBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    TabBtn.Size = UDim2.new(0, 144, 0, 41)
+    TabBtn.BorderSizePixel = 0
+    TabBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    TabBtn.Parent = Container
+    if #Container:GetChildren() >= 5 then
+        TabsContainer.Size = UDim2.new(0, 611, 0, 47)
+        Container.Size = UDim2.new(0, 574, 0, 48)
+        Container.ClipsDescendants = true
+    else
+        TabsContainer.Size = UDim2.new(0, 611, 0, 39)
+        Container.Size = UDim2.new(0, 574, 0, 40)
+        Container.ClipsDescendants = true
+    end
+
+    local Toggled = Instance.new("Frame")
+    Toggled.Name = "Toggled"
+    Toggled.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Toggled.Size = UDim2.new(0, 144, 0, 2)
+    Toggled.BorderSizePixel = 0
+    Toggled.BackgroundColor3 = Color3.fromRGB(92, 93, 94)
+    Toggled.Parent = TabBtn
+
+    local ico = Instance.new("ImageLabel")
+    ico.ImageColor3 = Color3.fromRGB(169, 169, 169)
+    ico.ScaleType = Enum.ScaleType.Fit
+    ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    ico.Name = "ico"
+    ico.AnchorPoint = Vector2.new(0.5, 0.5)
+    ico.Image = "rbxassetid://103251760765538"
+    ico.BackgroundTransparency = 1
+    ico.Position = UDim2.new(0.14000000059604645, 0, 0.5, 0)
+    ico.Size = UDim2.new(0, 13, 0, 16)
+    ico.BorderSizePixel = 0
+    ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ico.Parent = TabBtn
+
+    local CloseBtn = Instance.new("ImageButton")
+    CloseBtn.ImageColor3 = Color3.fromRGB(55, 55, 55)
+    CloseBtn.ScaleType = Enum.ScaleType.Fit
+    CloseBtn.Active = false
+    CloseBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Size = UDim2.new(0, 12, 0, 12)
+    CloseBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+    CloseBtn.Image = "rbxassetid://79010788760505"
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Position = UDim2.new(0.8679999709129333, 0, 0.5, 0)
+    CloseBtn.Selectable = false
+    CloseBtn.BorderSizePixel = 0
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Parent = TabBtn
+
+    local Title = Instance.new("TextLabel")
+    Title.TextWrapped = true
+    Title.Name = "Title"
+    Title.TextColor3 = Color3.fromRGB(208, 208, 208)
+    Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Title.Text = tabName
+    Title.Size = UDim2.new(0, 76, 0, 15)
+    Title.Position = UDim2.new(0.23000000417232513, 0, 0.5, 0)
+    Title.AnchorPoint = Vector2.new(0, 0.5)
+    Title.BorderSizePixel = 0
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.TextScaled = true
+    Title.FontFace = Font.new(Arial, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    Title.TextSize = 14
+    Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Parent = TabBtn
+
+    makeCodebox(tabName, src)
+
+    TabBtn.MouseButton1Click:Connect(function()
+        for i, v in pairs(EditorFrame:GetChildren()) do
+            v.Visible = false
+        end
+        for i, v in pairs(Container:GetChildren()) do
+            if v:IsA("ImageButton") then
+                v.Toggled.Visible = false
+                v.BackgroundTransparency = 1
+            end
+        end
+        EditorFrame[tabName].Visible = true
+
+        Toggled.Visible = true
+        TabBtn.BackgroundTransparency = 0
+
+        curSel = EditorFrame[tabName]
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        TabBtn:Destroy()
+        EditorFrame[tabName]:Destroy()
+    end)
+
+    curSel = EditorFrame[tabName]
+end
+
+NewTab.MouseButton1Click:Connect(function()
+    lastTab += 1
+    makeTab("New Tab " .. tostring(lastTab))
+end)
+
+local ExplorerFuncs = {}
+
+function ExplorerFuncs:AddHeader(sectName)
+    local HeaderElement = Instance.new("Frame")
+    HeaderElement.BackgroundTransparency = 1
+    HeaderElement.Name = sectName
+    HeaderElement.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    HeaderElement.Size = UDim2.new(0, 309, 0, 45)
+    HeaderElement.BorderSizePixel = 0
+    HeaderElement.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderElement.Parent = Explorer
+
+    local Title = Instance.new("TextLabel")
+    Title.TextWrapped = true
+    Title.Name = "Title"
+    Title.TextColor3 = Color3.fromRGB(127, 127, 127)
+    Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Title.Text = sectName
+    Title.Size = UDim2.new(0, 253, 0, 12)
+    Title.Position = UDim2.new(0.06134625896811485, 0, 0.5, 0)
+    Title.AnchorPoint = Vector2.new(0, 0.5)
+    Title.BorderSizePixel = 0
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.TextScaled = true
+    Title.FontFace = Font.new(Arial, Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+    Title.TextSize = 14
+    Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Parent = HeaderElement
+end
+
+function ExplorerFuncs:AddScript(scriptName, imgId, sect, src)
+    local BtnElement = Instance.new("Frame")
+    BtnElement.BackgroundTransparency = 1
+    BtnElement.Name = scriptName
+    BtnElement.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    BtnElement.Size = UDim2.new(0, 309, 0, 40)
+    BtnElement.BorderSizePixel = 0
+    BtnElement.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    BtnElement.Parent = Explorer
+    BtnElement:SetAttribute("sect", sect)
+
+    local Btn = Instance.new("ImageButton")
+    Btn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Btn.AutoButtonColor = false
+    Btn.AnchorPoint = Vector2.new(0.5, 0.5)
+    Btn.BackgroundTransparency = 1
+    Btn.Position = UDim2.new(0.5110988020896912, 0, 0.5, 0)
+    Btn.Name = "Btn"
+    Btn.Size = UDim2.new(0, 277, 0, 34)
+    Btn.BorderSizePixel = 0
+    Btn.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    Btn.Parent = BtnElement
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.TopLeftRadius = UDim.new(0, 6)
+    UICorner.TopRightRadius = UDim.new(0, 6)
+    UICorner.BottomRightRadius = UDim.new(0, 6)
+    UICorner.BottomLeftRadius = UDim.new(0, 6)
+    UICorner.Parent = Btn
+
+    local ico = Instance.new("ImageLabel")
+    ico.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    ico.Name = "ico"
+    ico.AnchorPoint = Vector2.new(0.5, 0.5)
+    ico.Image = imgId
+    ico.BackgroundTransparency = 1
+    ico.Position = UDim2.new(0.07000000029802322, 0, 0.5, 0)
+    ico.Size = UDim2.new(0, 23, 0, 23)
+    ico.BorderSizePixel = 0
+    ico.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ico.Parent = Btn
+
+    local Title = Instance.new("TextLabel")
+    Title.TextWrapped = true
+    Title.Name = "Title"
+    Title.TextColor3 = Color3.fromRGB(198, 198, 198)
+    Title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    Title.Text = scriptName
+    Title.Size = UDim2.new(0, 231, 0, 14)
+    Title.Position = UDim2.new(0.14076866209506989, 0, 0.5, 0)
+    Title.AnchorPoint = Vector2.new(0, 0.5)
+    Title.BorderSizePixel = 0
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.TextScaled = true
+    Title.FontFace = Font.new(Arial, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    Title.TextSize = 14
+    Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Parent = Btn
+
+    Btn.MouseEnter:Connect(function()
+        Btn.BackgroundTransparency = 0
+    end)
+
+    Btn.MouseLeave:Connect(function()
+        Btn.BackgroundTransparency = 1
+    end)
+
+    Btn.MouseButton1Down:Connect(function()
+        makeTab(scriptName, src)
+    end)
+end
+
+local function BuildExplorer()
+    ExplorerFuncs:AddHeader("FAVOURITES")
+
+    for i,v in pairs(favScripts) do
+        ExplorerFuncs:AddScript(v.Name, "rbxassetid://129006243080309", "FAVOURITES", v.src)
+    end
+
+    ExplorerFuncs:AddHeader("FUN SCRIPTS")
+
+    for i,v in pairs(funScripts) do
+        ExplorerFuncs:AddScript(v.Name, "rbxassetid://75018660065307", "FUN SCRIPTS", v.src)
+    end
+end
+
+BuildExplorer()
+
+SearchInp:GetPropertyChangedSignal("Text"):Connect(function()
+    local txt = SearchInp.Text:lower()
+    if txt == "" then
+        for i, v in pairs(Explorer:GetChildren()) do
+            if v:IsA("UIListLayout") then continue end
+
+            v:Destroy()
+        end
+
+        BuildExplorer()
+    end
+    for i, v in pairs(Explorer:GetChildren()) do
+        if v:IsA("UIListLayout") then continue end
+        if not v.Name:lower():find(txt) then
+            if not v:FindFirstChild("Title") then
+                v:Destroy()
+            end
+        end
+    end
+end)
+
+Execute.MouseButton1Click:Connect(function()
+    if curSel then
+        loadstring(curSel.CodeBox.Text)()
+
+        AddLog("Script executed!")
+    end
+end)
+
+Clear.MouseButton1Click:Connect(function()
+    if curSel then
+        curSel.CodeBox.Text = ""
+    end
+end)
+
+ClearOut.MouseButton1Click:Connect(function()
+    for i, v in pairs(ContainerOut:GetChildren()) do
+        if v:IsA("TextLabel") then
+            v:Destroy()
+        end
+    end
+end)
+
+Copy.MouseButton1Click:Connect(function()
+    local labels = {}
+    for i, v in pairs(ContainerOut:GetChildren()) do
+        if v:IsA("TextLabel") then
+            table.insert(labels, v)
+        end
+    end
+
+    table.sort(labels, function(a, b)
+        return a.Position.Y.Offset < b.Position.Y.Offset
+    end)
+
+    local lines = {}
+    for _, label in ipairs(labels) do
+        table.insert(lines, label.Text)
+    end
+
+    setclipboard(table.concat(lines, "\n"))
+
+    AddLog("Copied to clipboard!")
+end)
+
+SaveOut.MouseButton1Click:Connect(function()
+    local labels = {}
+    for i, v in pairs(ContainerOut:GetChildren()) do
+        if v:IsA("TextLabel") then
+            table.insert(labels, v)
+        end
+    end
+
+    table.sort(labels, function(a, b)
+        return a.Position.Y.Offset < b.Position.Y.Offset
+    end)
+
+    local lines = {}
+    for _, label in ipairs(labels) do
+        table.insert(lines, label.Text)
+    end
+    local fileName = tostring(os.time()) .. ".txt"
+    writefile("InternalVelocity/SavedLogs/" .. fileName, table.concat(lines, "\n"))
+
+    AddLog("Saved to " .. fileName .. "!")
+end)
+
+Inject.MouseButton1Click:Connect(function()
+    AddLog("Already injected!")
+end)
+
+Open.MouseButton1Click:Connect(function()
+    OpenFile.Visible = true
+    local con
+    con = FileInput.FocusLost:Connect(function(ep)
+        if ep then
+            if isfile(FileInput.Text) then
+                OpenFile.Visible = false
+                makeTab(FileInput.Text:match("[^/]+$"), readfile(FileInput.Text))
+            else
+                OpenFile.Visible = false
+                AddLog("Couldn't find file.")
+            end
+
+            con:Disconnect()
+        end
+    end)
+end)
+
+Save.MouseButton1Click:Connect(function()
+    if curSel then
+        writefile(curSel.Name..".lua", curSel.CodeBox.Text)
+        AddLog("Saved to ".. curSel.Name .. ".lua!")
+    end
+end)
+
+AddLog("Welcome to Velocity, " .. game:GetService("Players").LocalPlayer.DisplayName)
+AddLog([[Supported Version: <u><font color="#1b80e2">All Versions Lad</font></u>]])
