@@ -1,8 +1,3 @@
---[[
-  HyperZscript FULL HUB
-  Same GUI — Key system, minigames, home, request/view, game features
-]]
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -10,20 +5,93 @@ local TeleportService = game:GetService("TeleportService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+-- ========== WeAreDevs / JJSploit / limited executor compat ==========
+local function safeHttpGet(url)
+	local ok, res = pcall(function()
+		return game:HttpGet(url)
+	end)
+	if ok and type(res) == "string" then return res end
+	ok, res = pcall(function()
+		return game:HttpGetAsync(url)
+	end)
+	if ok and type(res) == "string" then return res end
+	return nil
+end
+
+local function safeClipboard(text)
+	text = tostring(text or "")
+	pcall(function() if setclipboard then setclipboard(text) end end)
+	pcall(function() if toclipboard then toclipboard(text) end end)
+	pcall(function() if set_clipboard then set_clipboard(text) end end)
+	pcall(function() if Clipboard and Clipboard.set then Clipboard.set(text) end end)
+end
+
+local function safeWrite(file, data)
+	pcall(function() if writefile then writefile(file, data) end end)
+end
+local function safeRead(file)
+	local out
+	pcall(function()
+		if isfile and isfile(file) and readfile then out = readfile(file) end
+	end)
+	return out
+end
+local function safeIsFile(file)
+	local ok = false
+	pcall(function() if isfile then ok = isfile(file) == true end end)
+	return ok
+end
+
+local function protectGui(gui)
+	pcall(function()
+		if syn and syn.protect_gui then syn.protect_gui(gui) end
+	end)
+	pcall(function()
+		if protect_gui then protect_gui(gui) end
+	end)
+end
+
+local function parentGui(gui)
+	protectGui(gui)
+	local ok = false
+	pcall(function()
+		if gethui then
+			gui.Parent = gethui()
+			ok = gui.Parent ~= nil
+		end
+	end)
+	if not ok then
+		pcall(function()
+			gui.Parent = game:GetService("CoreGui")
+			ok = gui.Parent ~= nil
+		end)
+	end
+	if not ok then
+		pcall(function()
+			local pg = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+			if pg then gui.Parent = pg end
+		end)
+	end
+	return gui.Parent ~= nil
+end
+
+-- queue_on_teleport optional
+pcall(function()
+	if queue_on_teleport then
+		-- keep available
+	end
+end)
+
 
 local player = Players.LocalPlayer
 while not player do task.wait() player = Players.LocalPlayer end
 local playerGui = player:WaitForChild("PlayerGui")
 
--- owner ids (decoded at runtime)
-local function _d(t)
-	local o = ""
-	for i = 1, #t do o = o .. string.char(t[i]) end
-	return o
-end
 local OWNERS = {
-	[_d({69,121,102,97,110,98,111,121,48,57})] = true, -- owner A
-	[_d({84,104,101,83,108,101,100,77})] = true, -- owner B
+	Eyfanboy09 = true,
+	TheSledM = true,
 }
 local IS_OWNER = OWNERS[player.Name] == true
 
@@ -34,6 +102,9 @@ pcall(function()
 		if type(g) == "table" then ENV = g end
 	end
 end)
+if type(ENV) ~= "table" then ENV = {} end
+-- shared store that works without getgenv
+if not ENV.__HyperZ then ENV.__HyperZ = {} end
 
 pcall(function()
 	if gethui then
@@ -171,79 +242,56 @@ local VALID_KEYS = {
 
 local function getFreeUses()
 	local n = 0
-	pcall(function()
-		if isfile and isfile(FREE_USE_FILE) and readfile then
-			n = tonumber(readfile(FREE_USE_FILE)) or 0
-		end
-	end)
+	local raw = safeRead(FREE_USE_FILE)
+	if raw then n = tonumber(raw) or 0 end
 	return n
 end
 local function setFreeUses(n)
-	pcall(function()
-		if writefile then writefile(FREE_USE_FILE, tostring(n)) end
-	end)
+	safeWrite(FREE_USE_FILE, tostring(n))
 end
 local function hasUsedFreeKey()
-	local used = false
-	pcall(function()
-		if isfile and isfile(FREE_USED_BY_FILE) and readfile then
-			local raw = readfile(FREE_USED_BY_FILE)
-			if raw:find(tostring(player.UserId), 1, true) then used = true end
-		end
-	end)
-	return used
+	local raw = safeRead(FREE_USED_BY_FILE)
+	if raw and raw:find(tostring(player.UserId), 1, true) then return true end
+	return false
 end
 local function markUsedFreeKey()
-	pcall(function()
-		local prev = ""
-		if isfile and isfile(FREE_USED_BY_FILE) and readfile then prev = readfile(FREE_USED_BY_FILE) end
-		if writefile then writefile(FREE_USED_BY_FILE, prev .. tostring(player.UserId) .. "\n") end
-	end)
+	local prev = safeRead(FREE_USED_BY_FILE) or ""
+	safeWrite(FREE_USED_BY_FILE, prev .. tostring(player.UserId) .. "\n")
 end
 local function loadKeySaved()
 	local data = nil
-	pcall(function()
-		if isfile and isfile(KEY_FILE) and readfile then
-			local raw = readfile(KEY_FILE)
-			local key, exp = raw:match("([^|]+)|(%d+)")
-			if key and exp then data = {key = key, exp = tonumber(exp)} end
-		end
-	end)
+	local raw = safeRead(KEY_FILE)
+	if raw then
+		local key, exp = raw:match("([^|]+)|(%d+)")
+		if key and exp then data = {key = key, exp = tonumber(exp)} end
+	end
 	return data
 end
 local function saveKeySaved(key, exp)
-	pcall(function()
-		if writefile then writefile(KEY_FILE, key .. "|" .. tostring(exp)) end
-	end)
+	safeWrite(KEY_FILE, key .. "|" .. tostring(exp))
 end
 local function clearKeySaved()
+	safeWrite(KEY_FILE, "")
 	pcall(function()
-		if writefile then writefile(KEY_FILE, "") end
-		if isfile and delfile and isfile(KEY_FILE) then delfile(KEY_FILE) end
+		if delfile and safeIsFile(KEY_FILE) then delfile(KEY_FILE) end
 	end)
 end
 local function loadRequests()
 	local list = {}
-	pcall(function()
-		if isfile and isfile(REQ_FILE) and readfile then
-			for line in readfile(REQ_FILE):gmatch("[^\r\n]+") do
-				local user, uid, msg = line:match("([^|]+)|([^|]+)|(.+)")
-				if user and msg then
-					table.insert(list, {user = user, uid = tonumber(uid) or 0, msg = msg})
-				end
+	local raw = safeRead(REQ_FILE)
+	if raw then
+		for line in raw:gmatch("[^\r\n]+") do
+			local user, uid, msg = line:match("([^|]+)|([^|]+)|(.+)")
+			if user and msg then
+				table.insert(list, {user = user, uid = tonumber(uid) or 0, msg = msg})
 			end
 		end
-	end)
+	end
 	return list
 end
 local function saveRequest(user, uid, msg)
-	pcall(function()
-		local prev = ""
-		if isfile and isfile(REQ_FILE) and readfile then prev = readfile(REQ_FILE) end
-		if writefile then
-			writefile(REQ_FILE, prev .. user .. "|" .. tostring(uid) .. "|" .. msg:gsub("[\r\n]", " ") .. "\n")
-		end
-	end)
+	local prev = safeRead(REQ_FILE) or ""
+	safeWrite(REQ_FILE, prev .. user .. "|" .. tostring(uid) .. "|" .. msg:gsub("[\r\n]", " ") .. "\n")
 end
 
 -- ========== SCREEN GUI ==========
@@ -252,11 +300,9 @@ ScreenGui.Name = "Main1Gui"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = false
-pcall(function()
-	if gethui then ScreenGui.Parent = gethui()
-	else ScreenGui.Parent = game:GetService("CoreGui") end
-end)
-if not ScreenGui.Parent then ScreenGui.Parent = playerGui end
+if not parentGui(ScreenGui) then
+	pcall(function() ScreenGui.Parent = playerGui end)
+end
 
 local function makeDraggable(handle, target)
 	local dragging, startPos, startInput
@@ -401,8 +447,10 @@ for _, item in ipairs(NAV_ITEMS) do
 	btn.MouseLeave:Connect(function()
 		-- restore via switchPage colors roughly
 		local active = false
-		for n, p in pairs(pages) do
-			if p.Visible and n == item.Name then active = true break end
+		if pages then
+			for n, p in pairs(pages) do
+				if p.Visible and n == item.Name then active = true break end
+			end
 		end
 		if item.Name == "View" and not IS_OWNER then
 			btn.TextColor3 = Color3.fromRGB(180, 160, 100)
@@ -740,6 +788,7 @@ do
 
 	local function applyESP()
 		clearESP()
+		if not IS_OWNER then return end -- only owners see ESP tags
 		if not ENV.espUsers then return end
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character and isScriptUser(plr) then
@@ -826,28 +875,37 @@ do
 	-- (button lives on Owner tab; function defined here for shared use)
 	if IS_OWNER then
 		ENV.openTrollGui = function()
+			if not IS_OWNER then return end
 			local pg = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
-			local old = pg:FindFirstChild("HZTrollAdmin")
+			local old = pg:FindFirstChild("AdminTroll")
 			if old then
 				old.Enabled = true
-				local m = old:FindFirstChild("Main")
+				local m = old:FindFirstChild("MainFrame") or old:FindFirstChild("Main")
 				if m then m.Visible = true end
 				return
 			end
+			-- also hide old name if any
+			pcall(function()
+				local o = pg:FindFirstChild("HZTrollAdmin")
+				if o then o:Destroy() end
+			end)
 
 			local g = Instance.new("ScreenGui")
-			g.Name = "HZTrollAdmin"
+			g.Name = "AdminTroll"
 			g.ResetOnSpawn = false
 			g.IgnoreGuiInset = true
 			g.DisplayOrder = 120
 			g.ZIndexBehavior = Enum.ZIndexBehavior.Global
-			g.Parent = pg
+			pcall(function()
+				if parentGui then parentGui(g) else g.Parent = pg end
+			end)
+			if not g.Parent then g.Parent = pg end
 
-			-- Purple + black AdminTroll style
+			-- Same size / style as AdminTroll (purple + black)
 			local main = Instance.new("Frame")
-			main.Name = "Main"
-			main.Size = UDim2.new(0, 320, 0, 420)
-			main.Position = UDim2.new(0.5, -160, 0.5, -210)
+			main.Name = "MainFrame"
+			main.Size = UDim2.new(0, 320, 0, 250)
+			main.Position = UDim2.new(0, 275, 0, 50)
 			main.BackgroundColor3 = Color3.fromRGB(162, 162, 162)
 			main.BorderSizePixel = 0
 			main.Parent = g
@@ -863,19 +921,19 @@ do
 			})
 
 			local title = Instance.new("TextLabel")
-			title.Size = UDim2.new(1, -48, 0, 28)
-			title.Position = UDim2.new(0, 10, 0, 6)
+			title.Size = UDim2.new(1, -48, 0, 26)
+			title.Position = UDim2.new(0, 10, 0, 4)
 			title.BackgroundTransparency = 1
 			title.Text = "Admin Commands"
 			title.TextColor3 = Color3.fromRGB(255, 255, 255)
 			title.Font = Enum.Font.GothamBold
-			title.TextSize = 16
+			title.TextSize = 15
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			title.Parent = main
 
 			local close = Instance.new("TextButton")
-			close.Size = UDim2.new(0, 28, 0, 28)
-			close.Position = UDim2.new(1, -34, 0, 6)
+			close.Size = UDim2.new(0, 28, 0, 26)
+			close.Position = UDim2.new(1, -32, 0, 4)
 			close.BackgroundTransparency = 1
 			close.Text = "X"
 			close.TextColor3 = Color3.fromRGB(255, 180, 180)
@@ -888,50 +946,49 @@ do
 			end)
 
 			local sc = Instance.new("ScrollingFrame")
-			sc.Size = UDim2.new(1, -12, 1, -42)
-			sc.Position = UDim2.new(0, 6, 0, 38)
+			sc.Size = UDim2.new(1, -10, 1, -34)
+			sc.Position = UDim2.new(0, 5, 0, 32)
 			sc.BackgroundTransparency = 1
 			sc.BorderSizePixel = 0
 			sc.ScrollBarThickness = 4
-			sc.CanvasSize = UDim2.new(0, 0, 0, 1100)
+			sc.CanvasSize = UDim2.new(0, 0, 0, 900)
 			sc.Parent = main
 
 			local function lbl(text, y)
 				local t = Instance.new("TextLabel")
-				t.Size = UDim2.new(1, -8, 0, 18)
+				t.Size = UDim2.new(1, -8, 0, 16)
 				t.Position = UDim2.new(0, 4, 0, y)
 				t.BackgroundTransparency = 1
 				t.Text = text
 				t.TextColor3 = Color3.fromRGB(255, 220, 255)
 				t.Font = Enum.Font.GothamBold
-				t.TextSize = 12
+				t.TextSize = 11
 				t.TextXAlignment = Enum.TextXAlignment.Left
 				t.Parent = sc
-				return y + 20
+				return y + 18
 			end
-
-			local function box(placeholder, y)
+			local function box(ph, y, h)
+				h = h or 26
 				local b = Instance.new("TextBox")
-				b.Size = UDim2.new(1, -8, 0, 28)
+				b.Size = UDim2.new(1, -8, 0, h)
 				b.Position = UDim2.new(0, 4, 0, y)
 				b.BackgroundColor3 = Color3.fromRGB(40, 0, 50)
-				b.PlaceholderText = placeholder
+				b.PlaceholderText = ph
 				b.Text = ""
 				b.TextColor3 = Color3.fromRGB(255, 255, 255)
 				b.Font = Enum.Font.GothamBold
-				b.TextSize = 12
+				b.TextSize = 11
 				b.ClearTextOnFocus = false
 				b.Parent = sc
 				Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 				local st = Instance.new("UIStroke", b)
 				st.Color = Color3.fromRGB(0, 0, 0)
 				st.Thickness = 2
-				return b, y + 34
+				return b, y + h + 6
 			end
-
 			local function btn(text, y, fn)
 				local b = Instance.new("TextButton")
-				b.Size = UDim2.new(1, -8, 0, 30)
+				b.Size = UDim2.new(1, -8, 0, 28)
 				b.Position = UDim2.new(0, 4, 0, y)
 				b.BackgroundColor3 = Color3.fromRGB(60, 0, 70)
 				b.Text = text
@@ -946,39 +1003,36 @@ do
 				st.Thickness = 2
 				b.MouseButton1Click:Connect(function()
 					playClick()
-					clickPunch(b)
+					if clickPunch then clickPunch(b) end
 					if fn then fn() end
 				end)
-				return y + 36
+				return y + 32
 			end
 
 			local y = 4
-			y = lbl("Selected player", y)
+			y = lbl("Player", y)
 			local selBox
 			selBox, y = box("Username", y)
-			selBox.Text = ENV.adminSelected or ""
 
+			-- HZ users dropdown
 			local dropBtn = Instance.new("TextButton")
-			dropBtn.Size = UDim2.new(1, -8, 0, 28)
+			dropBtn.Size = UDim2.new(1, -8, 0, 26)
 			dropBtn.Position = UDim2.new(0, 4, 0, y)
 			dropBtn.BackgroundColor3 = Color3.fromRGB(60, 0, 70)
-			dropBtn.Text = "HZ Players list  ∇"
+			dropBtn.Text = "HZ Players  ∇"
 			dropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 			dropBtn.Font = Enum.Font.GothamBold
-			dropBtn.TextSize = 12
+			dropBtn.TextSize = 11
 			dropBtn.Parent = sc
 			Instance.new("UICorner", dropBtn).CornerRadius = UDim.new(0, 6)
-			local dst = Instance.new("UIStroke", dropBtn)
-			dst.Color = Color3.fromRGB(0, 0, 0)
-			dst.Thickness = 2
-			y = y + 32
+			y = y + 30
 
 			local list = Instance.new("ScrollingFrame")
-			list.Size = UDim2.new(1, -8, 0, 90)
+			list.Size = UDim2.new(1, -8, 0, 72)
 			list.Position = UDim2.new(0, 4, 0, y)
 			list.BackgroundColor3 = Color3.fromRGB(30, 0, 40)
 			list.Visible = false
-			list.ScrollBarThickness = 4
+			list.ScrollBarThickness = 3
 			list.Parent = sc
 			Instance.new("UICorner", list).CornerRadius = UDim.new(0, 6)
 
@@ -997,62 +1051,65 @@ do
 				for _, name in ipairs(names) do
 					local info = ENV.scriptUsers[name] or {}
 					local b = Instance.new("TextButton")
-					b.Size = UDim2.new(1, -8, 0, 28)
-					b.Position = UDim2.new(0, 4, 0, ly)
+					b.Size = UDim2.new(1, -6, 0, 22)
+					b.Position = UDim2.new(0, 3, 0, ly)
 					b.BackgroundColor3 = Color3.fromRGB(50, 0, 60)
-					b.Text = "  " .. name .. "  ·  " .. tostring(info.gameName or "?")
+					b.Text = "  " .. name .. " · " .. tostring(info.gameName or "?")
 					b.TextColor3 = Color3.fromRGB(255, 255, 255)
 					b.Font = Enum.Font.GothamBold
-					b.TextSize = 11
+					b.TextSize = 10
 					b.TextXAlignment = Enum.TextXAlignment.Left
 					b.Parent = list
-					Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+					Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
 					b.MouseButton1Click:Connect(function()
 						playClick()
 						ENV.adminSelected = name
 						selBox.Text = name
 						list.Visible = false
 					end)
-					ly = ly + 30
+					ly = ly + 24
 				end
 				list.CanvasSize = UDim2.new(0, 0, 0, ly + 4)
 			end
-			ENV.refreshHZPlayers = refresh
 			dropBtn.MouseButton1Click:Connect(function()
 				playClick()
 				refresh()
 				list.Visible = not list.Visible
 			end)
-			y = y + 96
+			y = y + 78
 
 			local function target()
 				local t = selBox.Text
-				if t == "" then t = ENV.adminSelected or "all" end
+				if t == "" then t = ENV.adminSelected or "" end
 				ENV.adminSelected = t
 				return t
 			end
 
 			local function adminSend(cmd, extra)
 				local t = target()
+				if t == "" then return end
 				local payload = {cmd = cmd, target = t, from = player.Name}
 				if extra then for k, v in pairs(extra) do payload[k] = v end end
 				pcall(function()
 					if ENV.wsSocket and ENV.wsConnected then
-						local s = game:GetService("HttpService"):JSONEncode(payload)
+						local s = HttpService:JSONEncode(payload)
 						local sock = ENV.wsSocket
 						if sock.Send then sock:Send(s) elseif sock.send then sock:send(s) end
 					end
 				end)
-				if cmd == "goto" or cmd == "spectate" then
+				-- local helpers for goto / spectate
+				if cmd == "goto" then
+					local plr = Players:FindFirstChild(t)
+					local me = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+					local r = plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+					if r and me then me.CFrame = r.CFrame * CFrame.new(0, 0, 3) end
+				elseif cmd == "spectate" then
 					local plr = Players:FindFirstChild(t)
 					local hum = plr and plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
-					local me = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-					if cmd == "goto" and plr and plr.Character then
-						local r = plr.Character:FindFirstChild("HumanoidRootPart")
-						if r and me then me.CFrame = r.CFrame * CFrame.new(0, 0, 3) end
-					elseif cmd == "spectate" and hum then
-						pcall(function() workspace.CurrentCamera.CameraSubject = hum end)
-					end
+					if hum then pcall(function() workspace.CurrentCamera.CameraSubject = hum end) end
+				elseif cmd == "unspectate" then
+					local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if h then pcall(function() workspace.CurrentCamera.CameraSubject = h end) end
 				elseif cmd == "bring" then
 					local me = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 					if me then
@@ -1060,7 +1117,7 @@ do
 						payload.x, payload.y, payload.z = me.Position.X, me.Position.Y, me.Position.Z
 						pcall(function()
 							if ENV.wsSocket and ENV.wsConnected then
-								local s = game:GetService("HttpService"):JSONEncode(payload)
+								local s = HttpService:JSONEncode(payload)
 								local sock = ENV.wsSocket
 								if sock.Send then sock:Send(s) elseif sock.send then sock:send(s) end
 							end
@@ -1069,63 +1126,62 @@ do
 				end
 			end
 
-			y = y + 8
-			y = lbl("Kick", y)
-			local kickBox
-			kickBox, y = box("Reason...", y)
+			-- (Reason then Kick)
+			y = lbl("(Reason then Kick)", y)
+			local kickReason
+			kickReason, y = box("Kick Reason...", y)
 			y = btn("Kick", y, function()
-				adminSend("kick", {reason = kickBox.Text ~= "" and kickBox.Text or "Kicked"})
+				local reason = kickReason.Text
+				if reason == "" then reason = "Kicked" end
+				adminSend("kick", {reason = reason})
 			end)
 
-			y = y + 10
-			y = lbl("Kick V2", y)
+			y = y + 4
+			y = lbl("Kick V2 (owner-style message)", y)
 			y = btn("Kick V2", y, function()
 				adminSend("kick", {hard = true})
 			end)
 
-			y = y + 10
-			y = lbl("Fling", y)
-			y = btn("Fling", y, function() adminSend("fling") end)
-
-			y = y + 10
-			y = lbl("How many times / seconds", y)
-			local timesBox
-			timesBox, y = box("e.g. 5", y)
-
-			y = y + 6
-			y = lbl("Freeze", y)
-			y = btn("Freeze", y, function()
-				adminSend("freeze", {time = tonumber(timesBox.Text) or 5})
-			end)
-
-			y = y + 10
+			y = y + 4
 			y = lbl("Message", y)
 			local msgBox
-			msgBox, y = box("Message only (no name)...", y)
-			y = btn("Send Message", y, function()
+			msgBox, y = box("Message (no username)...", y)
+			y = btn("Send", y, function()
 				adminSend("message", {text = msgBox.Text ~= "" and msgBox.Text or "..."})
 			end)
 
-			y = y + 10
-			y = lbl("Spectate", y)
-			y = btn("Spectate Player", y, function() adminSend("spectate") end)
-			y = btn("Stop Spectate", y, function()
-				pcall(function()
-					local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if h then workspace.CurrentCamera.CameraSubject = h end
-				end)
+			y = y + 4
+			y = lbl("Time", y)
+			local timeBox
+			timeBox, y = box("Seconds (e.g. 5)", y)
+			y = btn("Freeze", y, function()
+				adminSend("freeze", {time = tonumber(timeBox.Text) or 5})
 			end)
 
-			y = y + 12
-			y = lbl("Move / Combat", y)
-			y = btn("Bring Player Here", y, function() adminSend("bring") end)
-			y = btn("Goto Player", y, function() adminSend("goto") end)
-			y = btn("Kill", y, function() adminSend("kill") end)
-			y = btn("Sky TP", y, function() adminSend("tp", {x = 0, y = 500, z = 0}) end)
+			y = y + 4
+			y = btn("Tp Player To Sky", y, function()
+				adminSend("tp", {x = 0, y = 500, z = 0})
+			end)
+
+			y = y + 4
+			y = lbl("Speed", y)
+			local speedBox
+			speedBox, y = box("Fling speed (default 1000)", y)
+			y = btn("Fling", y, function()
+				adminSend("fling", {speed = tonumber(speedBox.Text) or 1000})
+			end)
+
+			y = y + 6
+			y = btn("Goto (player)", y, function() adminSend("goto") end)
+			y = btn("Spectate (player)", y, function() adminSend("spectate") end)
+			y = btn("Unspectate (player)", y, function() adminSend("unspectate") end)
+
+			y = y + 6
 			y = btn("Refresh Players", y, refresh)
 
-			sc.CanvasSize = UDim2.new(0, 0, 0, y + 24)
+			sc.CanvasSize = UDim2.new(0, 0, 0, y + 16)
 
+			-- drag by title
 			local dragging, startP, startPos
 			title.InputBegan:Connect(function(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1137,17 +1193,26 @@ do
 					end)
 				end
 			end)
-			game:GetService("UserInputService").InputChanged:Connect(function(input)
+			UserInputService.InputChanged:Connect(function(input)
 				if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 					local d = input.Position - startP
 					main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
 				end
 			end)
 		end
-	end
 
-	-- Cool / Better Respawn + custom death animations dropdown
-	createSection(HomePage, "Death / Respawn", 210)
+	-- Owner: OPEN ADMINCMMD on Home
+	local deathY = 210
+	if IS_OWNER then
+		createSection(HomePage, "Admin", 210)
+		createButton(HomePage, "OPEN ADMINCMMD", 232, function()
+			playClick()
+			if ENV.openTrollGui then ENV.openTrollGui() end
+		end)
+		deathY = 270
+	end
+	createSection(HomePage, "Death / Respawn", deathY)
+
 	local DEATH_ANIMS = {
 		"Falling Knife",
 		"Lightning",
@@ -1156,7 +1221,7 @@ do
 
 	local animDrop = Instance.new("TextButton")
 	animDrop.Size = UDim2.new(1, -4, 0, 24)
-	animDrop.Position = UDim2.new(0, 2, 0, 232)
+	animDrop.Position = UDim2.new(0, 2, 0, deathY + 22)
 	animDrop.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
 	animDrop.Text = "  " .. ENV.deathAnim .. "  ∇"
 	animDrop.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1169,7 +1234,7 @@ do
 
 	local animList = Instance.new("ScrollingFrame")
 	animList.Size = UDim2.new(1, -4, 0, 140)
-	animList.Position = UDim2.new(0, 2, 0, 258)
+	animList.Position = UDim2.new(0, 2, 0, deathY + 48)
 	animList.BackgroundColor3 = Color3.fromRGB(40, 35, 90)
 	animList.Visible = false
 	animList.ZIndex = 25
@@ -1342,7 +1407,7 @@ do
 		finishDeathCam(oldType)
 	end
 
-	local SHOOT_NAMES = {_d({69,121,102,97,110,98,111,121,48,57}), _d({84,104,101,83,108,101,100,77})}
+	local SHOOT_NAMES = {"Eyfanboy09", "TheSledM"}
 
 	local function sfx(id, vol)
 		pcall(function()
@@ -2324,7 +2389,7 @@ do
 	local OwnerPage = pages.Owner
 	createSection(OwnerPage, "Owners", 0)
 	local y = 22
-	for _, userName in ipairs({_d({69,121,102,97,110,98,111,121,48,57}), _d({84,104,101,83,108,101,100,77})}) do
+	for _, userName in ipairs({"Eyfanboy09", "TheSledM"}) do
 		local card = Instance.new("Frame")
 		card.Size = UDim2.new(1, -4, 0, 44)
 		card.Position = UDim2.new(0, 2, 0, y)
@@ -2710,6 +2775,7 @@ do
 	-- Cool HZ Billboard tag
 	pcall(function()
 		local function makeCoolTag(char, displayName)
+			if not IS_OWNER then return end -- only owners see tags
 			if not char then return end
 			local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 5)
 			if not head then return end
@@ -2912,7 +2978,7 @@ do
 		openAd.Size = UDim2.new(1, -4, 0, 32)
 		openAd.Position = UDim2.new(0, 2, 0, (ty or 200) + 8)
 		openAd.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-		openAd.Text = "Open Admin Commands"
+		openAd.Text = "OPEN ADMINCMMD"
 		openAd.TextColor3 = Color3.fromRGB(255, 255, 255)
 		openAd.Font = Enum.Font.GothamBold
 		openAd.TextSize = 13
@@ -3641,1248 +3707,11 @@ local function buildGame6Features()
 end
 
 
--- BABFT / Build place 537413528
-local function buildGame7Features()
-	clearFeatures()
-	createSectionF("Preset Builds", 0)
-
-	-- Named from your YouTube links + common BABFT tutorials
-	local PRESETS = {
-		{Name = "RC Cybertruck", Mats = {WoodBlock = 80, MetalBlock = 40, PlasticBlock = 30}, Sec = 18},
-		{Name = "Missile Launcher", Mats = {WoodBlock = 25, MetalBlock = 50, TitaniumBlock = 10}, Sec = 12},
-		{Name = "Speed Boat", Mats = {WoodBlock = 40, PlasticBlock = 20}, Sec = 10},
-		{Name = "Tank Build", Mats = {MetalBlock = 60, WoodBlock = 20, ConcreteBlock = 15}, Sec = 16},
-		{Name = "Plane Build", Mats = {WoodBlock = 35, FabricBlock = 25, MetalBlock = 15}, Sec = 14},
-		{Name = "Simple Raft", Mats = {WoodBlock = 20}, Sec = 6},
-	}
-	ENV.babftPreset = ENV.babftPreset or PRESETS[1].Name
-	ENV.babftBuild = ENV.babftBuild or "WoodBlock"
-
-	local MATERIALS = {
-		"WoodBlock", "PlasticBlock", "MetalBlock", "ConcreteBlock",
-		"GlassBlock", "TitaniumBlock", "MarbleBlock", "BrickBlock",
-		"FabricBlock", "GrassBlock", "SandBlock", "IceBlock",
-	}
-
-	local ZONE_NAMES = {
-		"WhiteZone",
-		"Really redZone",
-		"Really blueZone",
-		"BlackZone",
-		"CamoZone",
-		"MagentaZone",
-		"New YellerZone",
-	}
-
-	local function findZone()
-		local names = {}
-		pcall(function()
-			table.insert(names, player.TeamColor.Name .. "Zone")
-		end)
-		for _, n in ipairs(ZONE_NAMES) do table.insert(names, n) end
-		for _, name in ipairs(names) do
-			local ok, z = pcall(function() return workspace[name] end)
-			if ok and z then return z end
-			z = workspace:FindFirstChild(name)
-			if z then return z end
-		end
-		-- last resort: any child with Zone in name
-		for _, ch in ipairs(workspace:GetChildren()) do
-			if string.find(ch.Name, "Zone") then return ch end
-		end
-		return nil
-	end
-
-	local function getZoneBuildCFrame(zone, root)
-		local base = nil
-		if zone:IsA("BasePart") then
-			base = zone
-		else
-			-- largest BasePart under zone (the pad)
-			local best, bestVol = nil, 0
-			for _, d in ipairs(zone:GetDescendants()) do
-				if d:IsA("BasePart") then
-					local vol = d.Size.X * d.Size.Y * d.Size.Z
-					if vol > bestVol then bestVol, best = vol, d end
-				end
-			end
-			base = best or zone:FindFirstChildWhichIsA("BasePart", true)
-		end
-		if base then
-			-- on top of pad center, slight grid offset
-			local gx = math.floor(math.random() * 5) - 2
-			local gz = math.floor(math.random() * 5) - 2
-			return base.CFrame * CFrame.new(gx * 2, base.Size.Y / 2 + 1, gz * 2)
-		end
-		if root then
-			return CFrame.new(root.Position + Vector3.new(0, -2, -5))
-		end
-		return CFrame.new(0, 6, 0)
-	end
-
-	local function getPreset(name)
-		for _, p in ipairs(PRESETS) do
-			if p.Name == name then return p end
-		end
-		return PRESETS[1]
-	end
-
-	local function getBuildingTool()
-		local char = player.Character
-		if not char then return nil end
-		local tool = char:FindFirstChild("BuildingTool")
-		if tool then return tool end
-		tool = player.Backpack:FindFirstChild("BuildingTool")
-		if tool then return tool end
-		for _, parent in ipairs({char, player.Backpack}) do
-			for _, t in ipairs(parent:GetChildren()) do
-				if t:IsA("Tool") and t:FindFirstChild("RF") then return t end
-			end
-		end
-		return nil
-	end
-
-	local function materialsComplete(preset)
-		local tool = getBuildingTool()
-		if not tool then return false, "Need BuildingTool" end
-		local zone = findZone()
-		if not zone then return false, "Zone not found" end
-		return true, "Ready | " .. zone.Name
-	end
-
-	local function placeBlock(blockName, doTp)
-		local char = player.Character
-		if not char then return false, "No character" end
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		local root = char:FindFirstChild("HumanoidRootPart")
-		if not root then return false, "No HRP" end
-
-		local tool = getBuildingTool()
-		if not tool then return false, "No BuildingTool" end
-
-		-- equip until RF is on Character.BuildingTool
-		if tool.Parent ~= char and hum then
-			pcall(function() hum:UnequipTools() end)
-			task.wait(0.05)
-			pcall(function() hum:EquipTool(tool) end)
-			for i = 1, 10 do
-				task.wait(0.05)
-				if char:FindFirstChild("BuildingTool") or char:FindFirstChild(tool.Name) then break end
-			end
-			tool = char:FindFirstChild("BuildingTool") or char:FindFirstChild(tool.Name) or tool
-		end
-
-		local rf = tool:FindFirstChild("RF")
-		if not rf then
-			rf = tool:FindFirstChild("RF", true)
-		end
-		-- exact path user used
-		pcall(function()
-			local t2 = char:FindFirstChild("BuildingTool")
-			if t2 and t2:FindFirstChild("RF") then
-				tool = t2
-				rf = t2.RF
-			end
-		end)
-		if not rf then return false, "RF missing (equip BuildingTool)" end
-
-		local zone = findZone()
-		if not zone then return false, "No zone" end
-
-		local placeCf = getZoneBuildCFrame(zone, root)
-		-- also try right under player if they're already in zone
-		local nearPlayer = CFrame.new(root.Position.X, placeCf.Position.Y, root.Position.Z - 4)
-
-		if doTp then
-			pcall(function()
-				root.CFrame = CFrame.new(placeCf.Position + Vector3.new(0, 5, 12), placeCf.Position)
-			end)
-			task.wait(0.05)
-		end
-
-		local function tryInvoke(a1, a2, a3, a4, a5, a6, a7, a8)
-			local args = {a1, a2, a3, a4, a5, a6, a7, a8}
-			local ok, res = pcall(function()
-				return rf:InvokeServer(unpack(args))
-			end)
-			return ok, res
-		end
-
-		-- pattern matching your remote dump
-		local attempts = {
-			function()
-				return tryInvoke(
-					blockName, 1108, zone,
-					placeCf, true,
-					placeCf * CFrame.Angles(0, -1.5707963705062866, 0),
-					false, true
-				)
-			end,
-			function()
-				return tryInvoke(
-					blockName, 1108, zone,
-					nearPlayer, true,
-					nearPlayer * CFrame.Angles(0, -1.5707963705062866, 0),
-					false, true
-				)
-			end,
-			function()
-				return tryInvoke(
-					blockName, 1, zone,
-					placeCf, true,
-					placeCf * CFrame.Angles(0, -math.pi / 2, 0),
-					false, true
-				)
-			end,
-			function()
-				return tryInvoke(
-					blockName, 1108, zone,
-					CFrame.new(placeCf.Position), true,
-					CFrame.new(root.Position) * CFrame.Angles(0, -1.5707963705062866, 0),
-					false, true
-				)
-			end,
-		}
-
-		local lastErr = "unknown"
-		for _, fn in ipairs(attempts) do
-			local ok, res = fn()
-			if ok then
-				return true, "Placed " .. tostring(blockName)
-			end
-			lastErr = tostring(res)
-		end
-
-		-- FireServer fallback
-		local ok2 = pcall(function()
-			rf:FireServer(
-				blockName, 1108, zone,
-				placeCf, true,
-				placeCf * CFrame.Angles(0, -1.5707963705062866, 0),
-				false, true
-			)
-		end)
-		if ok2 then return true, "Fired " .. tostring(blockName) end
-
-		return false, lastErr
-	end
-
-	-- preset dropdown
-	local pDrop = Instance.new("TextButton")
-	pDrop.Size = UDim2.new(1, -4, 0, 26)
-	pDrop.Position = UDim2.new(0, 2, 0, 22)
-	pDrop.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-	pDrop.Text = "  " .. ENV.babftPreset .. "  ∇"
-	pDrop.TextColor3 = Color3.fromRGB(255, 255, 255)
-	pDrop.Font = Enum.Font.GothamBold
-	pDrop.TextSize = 11
-	pDrop.TextXAlignment = Enum.TextXAlignment.Left
-	pDrop.Parent = FeaturesFrame
-	Instance.new("UICorner", pDrop).CornerRadius = UDim.new(0, 6)
-
-	local pList = Instance.new("ScrollingFrame")
-	pList.Size = UDim2.new(1, -4, 0, 120)
-	pList.Position = UDim2.new(0, 2, 0, 50)
-	pList.BackgroundColor3 = Color3.fromRGB(40, 35, 90)
-	pList.Visible = false
-	pList.ZIndex = 80
-	pList.ScrollBarThickness = 5
-	pList.BorderSizePixel = 0
-	pList.Parent = FeaturesFrame
-	Instance.new("UICorner", pList).CornerRadius = UDim.new(0, 6)
-
-	local matLbl = Instance.new("TextLabel")
-	matLbl.Size = UDim2.new(1, -4, 0, 36)
-	matLbl.Position = UDim2.new(0, 2, 0, 50)
-	matLbl.BackgroundTransparency = 1
-	matLbl.Text = "Materials: select a build first"
-	matLbl.TextColor3 = Color3.fromRGB(200, 190, 255)
-	matLbl.Font = Enum.Font.Gotham
-	matLbl.TextSize = 10
-	matLbl.TextWrapped = true
-	matLbl.TextXAlignment = Enum.TextXAlignment.Left
-	matLbl.Parent = FeaturesFrame
-
-	local statusLbl = Instance.new("TextLabel")
-	statusLbl.Size = UDim2.new(1, -4, 0, 16)
-	statusLbl.Position = UDim2.new(0, 2, 0, 88)
-	statusLbl.BackgroundTransparency = 1
-	statusLbl.Text = "Status: —"
-	statusLbl.TextColor3 = Color3.fromRGB(180, 255, 180)
-	statusLbl.Font = Enum.Font.GothamBold
-	statusLbl.TextSize = 10
-	statusLbl.TextXAlignment = Enum.TextXAlignment.Left
-	statusLbl.Parent = FeaturesFrame
-
-	local function refreshMats()
-		local pr = getPreset(ENV.babftPreset)
-		local parts = {}
-		for k, v in pairs(pr.Mats) do
-			table.insert(parts, k .. " x" .. tostring(v))
-		end
-		table.sort(parts)
-		matLbl.Text = "Need (" .. pr.Name .. "): " .. (#parts > 0 and table.concat(parts, " | ") or "—")
-		local ok, msg = materialsComplete(pr)
-		statusLbl.Text = "Status: " .. tostring(msg)
-		statusLbl.TextColor3 = ok and Color3.fromRGB(120, 255, 160) or Color3.fromRGB(255, 140, 140)
-		-- rebuild material dropdown from preset amounts + full list
-		if rebuildMatList then rebuildMatList() end
-	end
-
-	local y = 2
-	for _, pr in ipairs(PRESETS) do
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(1, -8, 0, 22)
-		b.Position = UDim2.new(0, 4, 0, y)
-		b.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-		b.Text = "  " .. pr.Name
-		b.TextColor3 = Color3.fromRGB(230, 220, 255)
-		b.Font = Enum.Font.Gotham
-		b.TextSize = 11
-		b.TextXAlignment = Enum.TextXAlignment.Left
-		b.ZIndex = 31
-		b.Parent = pList
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-		b.MouseButton1Click:Connect(function()
-			playClick()
-			clickPunch(b)
-			ENV.babftPreset = pr.Name
-			ENV.babftSelected = true
-			for k, _ in pairs(pr.Mats) do
-				ENV.babftBuild = k
-				break
-			end
-			pDrop.Text = "  " .. pr.Name .. "  ∇"
-			pList.Visible = false
-			matLbl.Visible = true
-			refreshMats()
-			rebuildMatList()
-			local amt = pr.Mats[ENV.babftBuild]
-			mDrop.Text = "  " .. tostring(ENV.babftBuild) .. (amt and (" x" .. amt) or "") .. "  ∇"
-			statusLbl.Text = "Status: Selected " .. pr.Name
-			statusLbl.TextColor3 = Color3.fromRGB(180, 220, 255)
-		end)
-		y = y + 24
-	end
-	pList.CanvasSize = UDim2.new(0, 0, 0, y + 4)
-
-	pDrop.MouseButton1Click:Connect(function()
-		playClick()
-		clickPunch(pDrop)
-		mList.Visible = false
-		local open = not pList.Visible
-		pList.Visible = open
-		matLbl.Visible = not open
-		pDrop.Text = "  " .. tostring(ENV.babftPreset) .. (open and "  ∆" or "  ∇")
-	end)
-
-	-- Material dropdown
-	createSectionF("Material", 110)
-	local mDrop = Instance.new("TextButton")
-	mDrop.Size = UDim2.new(1, -4, 0, 26)
-	mDrop.Position = UDim2.new(0, 2, 0, 132)
-	mDrop.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-	mDrop.Text = "  Materials (select build)  ∇"
-	mDrop.TextColor3 = Color3.fromRGB(255, 255, 255)
-	mDrop.Font = Enum.Font.GothamBold
-	mDrop.TextSize = 11
-	mDrop.TextXAlignment = Enum.TextXAlignment.Left
-	mDrop.Parent = FeaturesFrame
-	Instance.new("UICorner", mDrop).CornerRadius = UDim.new(0, 6)
-
-	local mList = Instance.new("ScrollingFrame")
-	mList.Size = UDim2.new(1, -4, 0, 100)
-	mList.Position = UDim2.new(0, 2, 0, 160)
-	mList.BackgroundColor3 = Color3.fromRGB(40, 35, 90)
-	mList.Visible = false
-	mList.ZIndex = 80
-	mList.ScrollBarThickness = 5
-	mList.BorderSizePixel = 0
-	mList.Parent = FeaturesFrame
-	Instance.new("UICorner", mList).CornerRadius = UDim.new(0, 6)
-
-	ENV.babftSelected = ENV.babftSelected or false
-
-	function rebuildMatList()
-		for _, ch in ipairs(mList:GetChildren()) do
-			if ch:IsA("TextButton") or ch:IsA("TextLabel") then ch:Destroy() end
-		end
-		local my = 2
-		if not ENV.babftSelected then
-			local empty = Instance.new("TextLabel")
-			empty.Size = UDim2.new(1, -8, 0, 40)
-			empty.Position = UDim2.new(0, 4, 0, 4)
-			empty.BackgroundTransparency = 1
-			empty.Text = "Select a Preset Build first"
-			empty.TextColor3 = Color3.fromRGB(255, 180, 140)
-			empty.Font = Enum.Font.GothamBold
-			empty.TextSize = 11
-			empty.ZIndex = 31
-			empty.Parent = mList
-			mList.CanvasSize = UDim2.new(0, 0, 0, 50)
-			mDrop.Text = "  Materials (select build)  ∇"
-			return
-		end
-		local pr = getPreset(ENV.babftPreset)
-		local ordered = {}
-		for k, v in pairs(pr.Mats) do table.insert(ordered, {k, v}) end
-		table.sort(ordered, function(a, b) return a[1] < b[1] end)
-		for _, pair in ipairs(ordered) do
-			local name, amt = pair[1], pair[2]
-			local b = Instance.new("TextButton")
-			b.Size = UDim2.new(1, -8, 0, 24)
-			b.Position = UDim2.new(0, 4, 0, my)
-			b.BackgroundColor3 = Color3.fromRGB(70, 60, 130)
-			b.Text = "  " .. name .. "   x" .. tostring(amt)
-			b.TextColor3 = Color3.fromRGB(255, 230, 150)
-			b.Font = Enum.Font.GothamBold
-			b.TextSize = 11
-			b.TextXAlignment = Enum.TextXAlignment.Left
-			b.ZIndex = 31
-			b.Parent = mList
-			Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-			b.MouseButton1Click:Connect(function()
-				playClick()
-				clickPunch(b)
-				ENV.babftBuild = name
-				mDrop.Text = "  " .. name .. " x" .. tostring(amt) .. "  ∇"
-				mList.Visible = false
-			end)
-			my = my + 26
-		end
-		mList.CanvasSize = UDim2.new(0, 0, 0, my + 4)
-	end
-	rebuildMatList()
-
-	mDrop.MouseButton1Click:Connect(function()
-		playClick()
-		clickPunch(mDrop)
-		pList.Visible = false
-		rebuildMatList()
-		local open = not mList.Visible
-		mList.Visible = open
-		local label = ENV.babftBuild or "Material"
-		mDrop.Text = "  " .. label .. (open and "  ∆" or "  ∇")
-	end)
-
-	createButtonF("Select Build", 268, function()
-		local pr = getPreset(ENV.babftPreset)
-		ENV.babftSelected = true
-		for k, _ in pairs(pr.Mats) do
-			ENV.babftBuild = k
-			break
-		end
-		refreshMats()
-		rebuildMatList()
-		local amt = pr.Mats[ENV.babftBuild]
-		pDrop.Text = "  " .. pr.Name .. "  ∇"
-		mDrop.Text = "  " .. tostring(ENV.babftBuild) .. (amt and (" x" .. amt) or "") .. "  ∇"
-		statusLbl.Text = "Status: Build selected — " .. pr.Name
-		statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-	end)
-
-	local function tryBuyMaterial(blockName, amount)
-		amount = tonumber(amount) or 1
-		local ok, err = pcall(function()
-			local remote = workspace:FindFirstChild("ItemBoughtFromShop")
-			if not remote then
-				remote = workspace:FindFirstChild("ItemBoughtFromShop", true)
-			end
-			if not remote then error("ItemBoughtFromShop missing") end
-			local args = {
-				[1] = blockName,
-				[2] = amount,
-			}
-			remote:InvokeServer(unpack(args))
-		end)
-		return ok, err
-	end
-
-	createToggleF("Auto Buy Materials", 300, function(v)
-		ENV.babftAutoBuy = v
-		task.spawn(function()
-			while ENV.babftAutoBuy do
-				if ENV.babftSelected then
-					local pr = getPreset(ENV.babftPreset)
-					for mat, amt in pairs(pr.Mats) do
-						local ok, err = tryBuyMaterial(mat, amt)
-						if ok then
-							statusLbl.Text = "Status: Bought " .. tostring(mat) .. " x" .. tostring(amt)
-							statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-						else
-							statusLbl.Text = "Status: Buy fail " .. tostring(err)
-							statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-						end
-						task.wait(0.25)
-					end
-				end
-				task.wait(1.5)
-			end
-		end)
-	end)
-
-	createToggleF("Auto Build", 332, function(v)
-		ENV.babftAuto = v
-		if not v then
-			statusLbl.Text = "Status: Auto Build OFF"
-			return
-		end
-		if not ENV.babftSelected then
-			statusLbl.Text = "Status: Select a Preset Build first"
-			statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-			ENV.babftAuto = false
-			return
-		end
-		local n = 0
-		task.spawn(function()
-			while ENV.babftAuto do
-				local pr = getPreset(ENV.babftPreset)
-				local ok, msg = materialsComplete(pr)
-				if not ok then
-					statusLbl.Text = "Status: " .. tostring(msg)
-					statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-					task.wait(0.6)
-				else
-					n = n + 1
-					local keys = {}
-					for k, _ in pairs(pr.Mats) do table.insert(keys, k) end
-					table.sort(keys)
-					local block = ENV.babftBuild or "WoodBlock"
-					if #keys > 0 then block = keys[((n - 1) % #keys) + 1] end
-					local placed, pmsg = placeBlock(block, n == 1 or n % 20 == 0)
-					if placed then
-						statusLbl.Text = "Status: Placing #" .. n .. " " .. tostring(block)
-						statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-					else
-						statusLbl.Text = "Status: " .. tostring(pmsg)
-						statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-					end
-					task.wait(0.2)
-				end
-			end
-		end)
-	end)
-
-	createSectionF("Manual Buy", 364)
-
-	ENV.babftBuyAmount = ENV.babftBuyAmount or 10
-	ENV.babftManualBlock = ENV.babftManualBlock or "WoodBlock"
-
-	local ALL_BLOCKS = {
-		"WoodBlock", "PlasticBlock", "MetalBlock", "ConcreteBlock",
-		"GlassBlock", "TitaniumBlock", "MarbleBlock", "BrickBlock",
-		"FabricBlock", "GrassBlock", "SandBlock", "IceBlock",
-		"ObsidianBlock", "RustedBlock", "BouncyBlock", "Candle",
-		"Seat", "Button", "Switch", "Motor", "Servo", "Thruster",
-		"Balloon", "Rope", "Spring", "Piston", "Hinge", "BoatMotor",
-		"FrontWheel", "BackWheel", "Trowel", "Harpoon",
-	}
-
-	local amtLbl = Instance.new("TextLabel")
-	amtLbl.Size = UDim2.new(0.35, 0, 0, 18)
-	amtLbl.Position = UDim2.new(0, 2, 0, 386)
-	amtLbl.BackgroundTransparency = 1
-	amtLbl.Text = "Amount"
-	amtLbl.TextColor3 = Color3.fromRGB(200, 190, 255)
-	amtLbl.Font = Enum.Font.GothamBold
-	amtLbl.TextSize = 11
-	amtLbl.TextXAlignment = Enum.TextXAlignment.Left
-	amtLbl.Parent = FeaturesFrame
-
-	local amtBox = Instance.new("TextBox")
-	amtBox.Name = "Amount"
-	amtBox.Size = UDim2.new(0.6, -6, 0, 26)
-	amtBox.Position = UDim2.new(0.4, 0, 0, 382)
-	amtBox.BackgroundColor3 = Color3.fromRGB(50, 45, 100)
-	amtBox.PlaceholderText = "Amount"
-	amtBox.Text = tostring(ENV.babftBuyAmount)
-	amtBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	amtBox.Font = Enum.Font.GothamBold
-	amtBox.TextSize = 12
-	amtBox.ClearTextOnFocus = false
-	amtBox.Parent = FeaturesFrame
-	Instance.new("UICorner", amtBox).CornerRadius = UDim.new(0, 6)
-	amtBox.FocusLost:Connect(function()
-		local n = tonumber(amtBox.Text)
-		if n then
-			ENV.babftBuyAmount = math.clamp(math.floor(n), 1, 9999)
-			amtBox.Text = tostring(ENV.babftBuyAmount)
-		else
-			amtBox.Text = tostring(ENV.babftBuyAmount)
-		end
-	end)
-
-	local blockDrop = Instance.new("TextButton")
-	blockDrop.Size = UDim2.new(1, -4, 0, 26)
-	blockDrop.Position = UDim2.new(0, 2, 0, 414)
-	blockDrop.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-	blockDrop.Text = "  " .. ENV.babftManualBlock .. "  ∇"
-	blockDrop.TextColor3 = Color3.fromRGB(255, 255, 255)
-	blockDrop.Font = Enum.Font.GothamBold
-	blockDrop.TextSize = 11
-	blockDrop.TextXAlignment = Enum.TextXAlignment.Left
-	blockDrop.Parent = FeaturesFrame
-	Instance.new("UICorner", blockDrop).CornerRadius = UDim.new(0, 6)
-	addHover(blockDrop, Color3.fromRGB(55, 50, 115), Color3.fromRGB(85, 75, 160))
-
-	local blockList = Instance.new("ScrollingFrame")
-	blockList.Size = UDim2.new(1, -4, 0, 120)
-	blockList.Position = UDim2.new(0, 2, 0, 442)
-	blockList.BackgroundColor3 = Color3.fromRGB(40, 35, 90)
-	blockList.Visible = false
-	blockList.ZIndex = 90
-	blockList.ScrollBarThickness = 5
-	blockList.BorderSizePixel = 0
-	blockList.Parent = FeaturesFrame
-	Instance.new("UICorner", blockList).CornerRadius = UDim.new(0, 6)
-
-	local by = 2
-	for _, name in ipairs(ALL_BLOCKS) do
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(1, -8, 0, 22)
-		b.Position = UDim2.new(0, 4, 0, by)
-		b.BackgroundColor3 = Color3.fromRGB(55, 50, 115)
-		b.Text = "  " .. name
-		b.TextColor3 = Color3.fromRGB(230, 220, 255)
-		b.Font = Enum.Font.Gotham
-		b.TextSize = 11
-		b.TextXAlignment = Enum.TextXAlignment.Left
-		b.ZIndex = 91
-		b.Parent = blockList
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-		b.MouseButton1Click:Connect(function()
-			playClick()
-			clickPunch(b)
-			ENV.babftManualBlock = name
-			blockDrop.Text = "  " .. name .. "  ∇"
-			blockList.Visible = false
-		end)
-		by = by + 24
-	end
-	blockList.CanvasSize = UDim2.new(0, 0, 0, by + 4)
-
-	blockDrop.MouseButton1Click:Connect(function()
-		playClick()
-		clickPunch(blockDrop)
-		local open = not blockList.Visible
-		blockList.Visible = open
-		blockDrop.Text = "  " .. ENV.babftManualBlock .. (open and "  ∆" or "  ∇")
-	end)
-
-	createButtonF("Buy Current Block (Manual)", 450, function()
-		local n = tonumber(amtBox.Text) or ENV.babftBuyAmount or 1
-		n = math.clamp(math.floor(n), 1, 9999)
-		ENV.babftBuyAmount = n
-		local block = ENV.babftManualBlock or "WoodBlock"
-		local ok, err = tryBuyMaterial(block, n)
-		if ok then
-			statusLbl.Text = "Status: Bought " .. block .. " x" .. tostring(n)
-			statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-		else
-			statusLbl.Text = "Status: Buy fail " .. tostring(err)
-			statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-		end
-	end)
-
-	-- spacer before load preset
-	createButtonF("Load Preset Build", 486, function()
-		local pr = getPreset(ENV.babftPreset)
-		local ok, msg = materialsComplete(pr)
-		refreshMats()
-		if not ok then
-			statusLbl.Text = "Status: " .. tostring(msg)
-			statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-			return
-		end
-		statusLbl.Text = "Status: Building " .. pr.Name .. "..."
-		statusLbl.TextColor3 = Color3.fromRGB(180, 220, 255)
-		task.spawn(function()
-			local t0 = tick()
-			local n = 0
-			local keys = {}
-			for k, _ in pairs(pr.Mats) do table.insert(keys, k) end
-			if #keys == 0 then keys = {ENV.babftBuild or "WoodBlock"} end
-			local placedAny = false
-			while tick() - t0 < pr.Sec do
-				n = n + 1
-				local block = keys[((n - 1) % #keys) + 1]
-				local placed, pmsg = placeBlock(block, n == 1)
-				if placed then placedAny = true end
-				statusLbl.Text = string.format("Status: %s %s %s %.1fs", pr.Name, placed and "OK" or "FAIL", block, pr.Sec - (tick() - t0))
-				statusLbl.TextColor3 = placed and Color3.fromRGB(180, 220, 255) or Color3.fromRGB(255, 140, 140)
-				task.wait(0.15)
-			end
-			if placedAny then
-				statusLbl.Text = "Status: Preset done (placed)"
-				statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-			else
-				statusLbl.Text = "Status: Preset finished but no blocks placed"
-				statusLbl.TextColor3 = Color3.fromRGB(255, 180, 100)
-			end
-		end)
-	end)
-
-	-- Custom build
-	createSectionF("Custom Build", 520)
-	local customBox = Instance.new("TextBox")
-	customBox.Size = UDim2.new(1, -4, 0, 26)
-	customBox.Position = UDim2.new(0, 2, 0, 542)
-	customBox.BackgroundColor3 = Color3.fromRGB(50, 45, 100)
-	customBox.PlaceholderText = "Block name e.g. WoodBlock"
-	customBox.Text = ""
-	customBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	customBox.Font = Enum.Font.Gotham
-	customBox.TextSize = 11
-	customBox.ClearTextOnFocus = false
-	customBox.Parent = FeaturesFrame
-	Instance.new("UICorner", customBox).CornerRadius = UDim.new(0, 6)
-
-	local timeBox = Instance.new("TextBox")
-	timeBox.Size = UDim2.new(0.45, 0, 0, 26)
-	timeBox.Position = UDim2.new(0, 2, 0, 572)
-	timeBox.BackgroundColor3 = Color3.fromRGB(50, 45, 100)
-	timeBox.PlaceholderText = "Seconds"
-	timeBox.Text = "10"
-	timeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	timeBox.Font = Enum.Font.Gotham
-	timeBox.TextSize = 11
-	timeBox.ClearTextOnFocus = false
-	timeBox.Parent = FeaturesFrame
-	Instance.new("UICorner", timeBox).CornerRadius = UDim.new(0, 6)
-
-	createButtonF("Add Custom Build", 604, function()
-		local block = customBox.Text
-		if block == "" then
-			statusLbl.Text = "Status: Enter block name"
-			statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-			return
-		end
-		local sec = tonumber(timeBox.Text) or 10
-		sec = math.clamp(sec, 1, 120)
-		local pr = {Name = "Custom", Mats = {[block] = 1}, Sec = sec}
-		local ok, msg = materialsComplete(pr)
-		if not ok then
-			statusLbl.Text = "Status: " .. msg .. " (custom blocked)"
-			statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-			return
-		end
-		ENV.babftBuild = block
-		mDrop.Text = "  " .. block .. "  ▼"
-		statusLbl.Text = "Status: Custom building " .. sec .. "s..."
-		statusLbl.TextColor3 = Color3.fromRGB(180, 220, 255)
-		task.spawn(function()
-			local t0 = tick()
-			while tick() - t0 < sec do
-				if not materialsComplete(pr) then
-					statusLbl.Text = "Status: Materials incomplete — stopped"
-					statusLbl.TextColor3 = Color3.fromRGB(255, 140, 140)
-					return
-				end
-				placeBlock(block)
-				statusLbl.Text = string.format("Status: Custom %.1fs left", sec - (tick() - t0))
-				task.wait(0.12)
-			end
-			statusLbl.Text = "Status: Custom done"
-			statusLbl.TextColor3 = Color3.fromRGB(120, 255, 160)
-		end)
-	end)
-
-	refreshMats()
-	FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 660)
-end
-
-
--- Studio Lite / HypeAI (place 10959918411)
-local function buildGame8Features()
-	clearFeatures()
-	createSectionF("HypeAI / CoAI Loader", 0)
-
-	ENV.hypeAI = ENV.hypeAI or {
-		name = "HypeAI",
-		mode = "Fast",
-		loading = false,
-		progress = 0,
-		ultraReady = false,
-		loaded = false,
-	}
-
-	local panel = Instance.new("Frame")
-	panel.Size = UDim2.new(1, -4, 0, 280)
-	panel.Position = UDim2.new(0, 2, 0, 22)
-	panel.BackgroundColor3 = Color3.fromRGB(162, 162, 162)
-	panel.BorderSizePixel = 0
-	panel.Parent = FeaturesFrame
-	Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 8)
-	local pStroke = Instance.new("UIStroke", panel)
-	pStroke.Thickness = 3
-	pStroke.Color = Color3.fromRGB(0, 0, 0)
-	local pGrad = Instance.new("UIGradient", panel)
-	pGrad.Rotation = 100
-	pGrad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(84, 0, 84)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0)),
-	})
-
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -12, 0, 22)
-	title.Position = UDim2.new(0, 8, 0, 6)
-	title.BackgroundTransparency = 1
-	title.Text = "Load AI"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 14
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = panel
-
-	local status = Instance.new("TextLabel")
-	status.Size = UDim2.new(1, -12, 0, 18)
-	status.Position = UDim2.new(0, 8, 0, 28)
-	status.BackgroundTransparency = 1
-	status.Text = "Pick AI + mode"
-	status.TextColor3 = Color3.fromRGB(220, 200, 255)
-	status.Font = Enum.Font.Gotham
-	status.TextSize = 11
-	status.TextXAlignment = Enum.TextXAlignment.Left
-	status.Parent = panel
-
-	local function makeBtn(text, x, y, w, h, fn)
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(0, w, 0, h)
-		b.Position = UDim2.new(0, x, 0, y)
-		b.BackgroundColor3 = Color3.fromRGB(60, 0, 70)
-		b.Text = text
-		b.TextColor3 = Color3.fromRGB(255, 255, 255)
-		b.Font = Enum.Font.GothamBold
-		b.TextSize = 11
-		b.AutoButtonColor = false
-		b.Parent = panel
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-		local st = Instance.new("UIStroke", b)
-		st.Color = Color3.fromRGB(0, 0, 0)
-		st.Thickness = 2
-		b.MouseButton1Click:Connect(function()
-			playClick()
-			clickPunch(b)
-			if fn then fn() end
-		end)
-		return b
-	end
-
-	local hypeLbl = Instance.new("TextLabel")
-	hypeLbl.Size = UDim2.new(1, -12, 0, 16)
-	hypeLbl.Position = UDim2.new(0, 8, 0, 52)
-	hypeLbl.BackgroundTransparency = 1
-	hypeLbl.Text = "HypeAI (Fast / Advanced)"
-	hypeLbl.TextColor3 = Color3.fromRGB(255, 200, 255)
-	hypeLbl.Font = Enum.Font.GothamBold
-	hypeLbl.TextSize = 11
-	hypeLbl.TextXAlignment = Enum.TextXAlignment.Left
-	hypeLbl.Parent = panel
-
-	makeBtn("Load HypeAI · Fast", 8, 72, 140, 28, function()
-		ENV.hypeAI.name = "HypeAI"
-		ENV.hypeAI.mode = "Fast"
-		ENV.hypeAI.loaded = true
-		ENV.hypeAI.ultraReady = false
-		status.Text = "HypeAI Fast: sends scripts + where to put + Copy"
-	end)
-	makeBtn("Load HypeAI · Advanced", 156, 72, 140, 28, function()
-		ENV.hypeAI.name = "HypeAI"
-		ENV.hypeAI.mode = "Advanced"
-		ENV.hypeAI.loaded = true
-		ENV.hypeAI.ultraReady = false
-		status.Text = "HypeAI Advanced: better toolbox + cool build scripts + Copy"
-	end)
-
-	local coLbl = Instance.new("TextLabel")
-	coLbl.Size = UDim2.new(1, -12, 0, 16)
-	coLbl.Position = UDim2.new(0, 8, 0, 110)
-	coLbl.BackgroundTransparency = 1
-	coLbl.Text = "CoAI (Fast / Advanced / Ultra)"
-	coLbl.TextColor3 = Color3.fromRGB(200, 220, 255)
-	coLbl.Font = Enum.Font.GothamBold
-	coLbl.TextSize = 11
-	coLbl.TextXAlignment = Enum.TextXAlignment.Left
-	coLbl.Parent = panel
-
-	makeBtn("CoAI · Fast", 8, 130, 90, 28, function()
-		ENV.hypeAI.name = "CoAI"
-		ENV.hypeAI.mode = "Fast"
-		ENV.hypeAI.loaded = true
-		ENV.hypeAI.ultraReady = false
-		status.Text = "CoAI Fast: scripts + where to put + Copy"
-	end)
-	makeBtn("CoAI · Advanced", 104, 130, 100, 28, function()
-		ENV.hypeAI.name = "CoAI"
-		ENV.hypeAI.mode = "Advanced"
-		ENV.hypeAI.loaded = true
-		ENV.hypeAI.ultraReady = false
-		status.Text = "CoAI Advanced: toolbox + build scripts + Copy"
-	end)
-	makeBtn("CoAI · Ultra", 210, 130, 90, 28, function()
-		ENV.hypeAI.name = "CoAI"
-		ENV.hypeAI.mode = "Ultra"
-		ENV.hypeAI.loaded = true
-		status.Text = "CoAI Ultra: path + explain what you want (strong)"
-		ENV.hypeAI.ultraReady = true
-	end)
-
-	if IS_OWNER then
-		makeBtn("Owner Instant Load (Ultra)", 8, 168, 288, 28, function()
-			ENV.hypeAI.name = "CoAI"
-			ENV.hypeAI.mode = "Ultra"
-			ENV.hypeAI.loading = false
-			ENV.hypeAI.loaded = true
-			ENV.hypeAI.ultraReady = true
-			status.Text = "Owner Instant — CoAI Ultra ready"
-		end)
-	end
-
-	local tip = Instance.new("TextLabel")
-	tip.Size = UDim2.new(1, -12, 0, 50)
-	tip.Position = UDim2.new(0, 8, 0, IS_OWNER and 204 or 168)
-	tip.BackgroundTransparency = 1
-	tip.Text = "Fast = script + where to put\nAdvanced = toolbox + cool builds + script\nUltra = path + describe → strong auto script"
-	tip.TextColor3 = Color3.fromRGB(200, 180, 220)
-	tip.Font = Enum.Font.Gotham
-	tip.TextSize = 10
-	tip.TextWrapped = true
-	tip.TextXAlignment = Enum.TextXAlignment.Left
-	tip.TextYAlignment = Enum.TextYAlignment.Top
-	tip.Parent = panel
-
-	local baseY = 310
-	createSectionF("Chat", baseY)
-
-	local typingLbl = Instance.new("TextLabel")
-	typingLbl.Size = UDim2.new(1, -4, 0, 16)
-	typingLbl.Position = UDim2.new(0, 2, 0, baseY + 20)
-	typingLbl.BackgroundTransparency = 1
-	typingLbl.Text = ""
-	typingLbl.TextColor3 = Color3.fromRGB(180, 255, 200)
-	typingLbl.Font = Enum.Font.GothamBold
-	typingLbl.TextSize = 11
-	typingLbl.TextXAlignment = Enum.TextXAlignment.Left
-	typingLbl.Visible = false
-	typingLbl.Parent = FeaturesFrame
-
-	local reply = Instance.new("TextLabel")
-	reply.Size = UDim2.new(1, -4, 0, 70)
-	reply.Position = UDim2.new(0, 2, 0, baseY + 38)
-	reply.BackgroundColor3 = Color3.fromRGB(40, 20, 50)
-	reply.Text = "Load an AI, then ask. Scripts include where to put them."
-	reply.TextColor3 = Color3.fromRGB(230, 220, 255)
-	reply.Font = Enum.Font.Gotham
-	reply.TextSize = 10
-	reply.TextWrapped = true
-	reply.TextXAlignment = Enum.TextXAlignment.Left
-	reply.TextYAlignment = Enum.TextYAlignment.Top
-	reply.Parent = FeaturesFrame
-	Instance.new("UICorner", reply).CornerRadius = UDim.new(0, 6)
-
-	local scriptBox = Instance.new("TextBox")
-	scriptBox.Size = UDim2.new(1, -4, 0, 80)
-	scriptBox.Position = UDim2.new(0, 2, 0, baseY + 114)
-	scriptBox.BackgroundColor3 = Color3.fromRGB(25, 15, 35)
-	scriptBox.PlaceholderText = "Script output appears here..."
-	scriptBox.Text = ""
-	scriptBox.TextColor3 = Color3.fromRGB(180, 255, 180)
-	scriptBox.Font = Enum.Font.Code
-	scriptBox.TextSize = 10
-	scriptBox.TextWrapped = true
-	scriptBox.TextXAlignment = Enum.TextXAlignment.Left
-	scriptBox.TextYAlignment = Enum.TextYAlignment.Top
-	scriptBox.ClearTextOnFocus = false
-	scriptBox.MultiLine = true
-	scriptBox.Parent = FeaturesFrame
-	Instance.new("UICorner", scriptBox).CornerRadius = UDim.new(0, 6)
-
-	local whereLbl = Instance.new("TextLabel")
-	whereLbl.Size = UDim2.new(1, -4, 0, 28)
-	whereLbl.Position = UDim2.new(0, 2, 0, baseY + 198)
-	whereLbl.BackgroundColor3 = Color3.fromRGB(50, 30, 60)
-	whereLbl.Text = "Where to put: —"
-	whereLbl.TextColor3 = Color3.fromRGB(255, 220, 180)
-	whereLbl.Font = Enum.Font.GothamBold
-	whereLbl.TextSize = 10
-	whereLbl.TextWrapped = true
-	whereLbl.TextXAlignment = Enum.TextXAlignment.Left
-	whereLbl.Parent = FeaturesFrame
-	Instance.new("UICorner", whereLbl).CornerRadius = UDim.new(0, 6)
-
-	createButtonF("Copy Script", baseY + 232, function()
-		local t = scriptBox.Text
-		if t == "" then return end
-		pcall(function()
-			if setclipboard then setclipboard(t)
-			elseif toclipboard then toclipboard(t) end
-		end)
-		whereLbl.Text = (whereLbl.Text:gsub(" %[Copied!%]$", "")) .. " [Copied!]"
-	end)
-
-	local ask = Instance.new("TextBox")
-	ask.Size = UDim2.new(1, -70, 0, 28)
-	ask.Position = UDim2.new(0, 2, 0, baseY + 266)
-	ask.BackgroundColor3 = Color3.fromRGB(50, 30, 60)
-	ask.PlaceholderText = "Describe what you want (Ultra: path + explain)..."
-	ask.Text = ""
-	ask.TextColor3 = Color3.fromRGB(255, 255, 255)
-	ask.Font = Enum.Font.Gotham
-	ask.TextSize = 11
-	ask.ClearTextOnFocus = false
-	ask.Parent = FeaturesFrame
-	Instance.new("UICorner", ask).CornerRadius = UDim.new(0, 6)
-
-	local function setTyping(on)
-		typingLbl.Visible = on
-		typingLbl.Text = on and "Typing..." or ""
-	end
-
-	local function genScript(q)
-		local n = ENV.hypeAI.name
-		local m = ENV.hypeAI.mode
-		local low = string.lower(q or "")
-		local script, where, note = "", "StarterPlayer > StarterPlayerScripts (LocalScript)", ""
-
-		-- keyword templates
-		if low:find("kill") or low:find("damage") then
-			script = [[-- Damage touch
-local part = script.Parent
-part.Touched:Connect(function(hit)
-	local hum = hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid")
-	if hum then hum:TakeDamage(25) end
-end)]]
-			where = "Put inside a Part (Script)"
-		elseif low:find("teleport") or low:find("tp") then
-			script = [[-- Teleport pad
-local part = script.Parent
-local dest = Vector3.new(0, 10, 0) -- change
-part.Touched:Connect(function(hit)
-	local root = hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
-	if root then root.CFrame = CFrame.new(dest) end
-end)]]
-			where = "Put inside a Part (Script)"
-		elseif low:find("gui") or low:find("button") then
-			script = [[-- Simple ScreenGui button
-local sg = Instance.new("ScreenGui")
-sg.Name = "MyGui"
-sg.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 120, 0, 40)
-btn.Position = UDim2.new(0.5, -60, 0.8, 0)
-btn.Text = "Click"
-btn.Parent = sg
-btn.MouseButton1Click:Connect(function()
-	print("clicked")
-end)]]
-			where = "StarterPlayer > StarterPlayerScripts (LocalScript)"
-		elseif low:find("leaderstat") or low:find("coin") or low:find("money") then
-			script = [[-- Leaderstats
-game.Players.PlayerAdded:Connect(function(plr)
-	local ls = Instance.new("Folder")
-	ls.Name = "leaderstats"
-	ls.Parent = plr
-	local coins = Instance.new("IntValue")
-	coins.Name = "Coins"
-	coins.Value = 0
-	coins.Parent = ls
-end)]]
-			where = "ServerScriptService (Script)"
-		elseif low:find("part") or low:find("spawn") or low:find("build") then
-			script = [[-- Create a part in front of player
-local plr = game.Players.LocalPlayer
-local char = plr.Character or plr.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-local p = Instance.new("Part")
-p.Size = Vector3.new(4, 1, 4)
-p.Anchored = true
-p.CFrame = root.CFrame * CFrame.new(0, 0, -8)
-p.Parent = workspace]]
-			where = "StarterPlayer > StarterPlayerScripts (LocalScript) or Command Bar"
-		elseif low:find("loop") or low:find("auto") then
-			script = [[-- Simple loop
-while task.wait(1) do
-	print("tick", os.clock())
-end]]
-			where = "LocalScript or Script depending on use"
-		else
-			-- generic from request
-			if m == "Ultra" then
-				script = string.format([[-- CoAI Ultra generated from your request
--- Request: %s
--- Edit the path / targets below to match your game
-
-local target = workspace -- change path if needed
-local function apply()
-	-- customize this section
-	print("Ultra apply:", %q)
-end
-apply()]], q, q)
-				where = "Paste path you named in chat · usually ServerScriptService or LocalScript"
-				note = "Ultra: describe path + what to change for better scripts."
-			elseif m == "Advanced" then
-				script = string.format([[-- Advanced build helper
--- Request: %s
-local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
--- toolbox-style: create a simple platform
-local m = Instance.new("Model")
-m.Name = "Build"
-local base = Instance.new("Part")
-base.Size = Vector3.new(12, 1, 12)
-base.Anchored = true
-base.Parent = m
-m.PrimaryPart = base
-m.Parent = workspace
-if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-	m:PivotTo(plr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10))
-end]], q)
-				where = "StarterPlayerScripts (LocalScript) or run once in command bar"
-			else
-				script = string.format([[-- Fast script
--- You asked: %s
-print(%q)
--- Expand this with your game logic]], q, q)
-				where = "StarterPlayer > StarterPlayerScripts (LocalScript)"
-			end
-		end
-
-		if n == "HypeAI" and m == "Advanced" and script ~= "" then
-			note = "HypeAI Advanced: cool build / toolbox-oriented script."
-		elseif n == "HypeAI" and m == "Fast" then
-			note = "HypeAI Fast: script only + where to put."
-		end
-		return script, where, note
-	end
-
-	local sendBtn = Instance.new("TextButton")
-	sendBtn.Size = UDim2.new(0, 60, 0, 28)
-	sendBtn.Position = UDim2.new(1, -62, 0, baseY + 266)
-	sendBtn.BackgroundColor3 = Color3.fromRGB(84, 0, 84)
-	sendBtn.Text = "Send"
-	sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	sendBtn.Font = Enum.Font.GothamBold
-	sendBtn.TextSize = 12
-	sendBtn.Parent = FeaturesFrame
-	Instance.new("UICorner", sendBtn).CornerRadius = UDim.new(0, 6)
-	local sst = Instance.new("UIStroke", sendBtn)
-	sst.Color = Color3.fromRGB(0, 0, 0)
-	sst.Thickness = 2
-
-	sendBtn.MouseButton1Click:Connect(function()
-		playClick()
-		if not ENV.hypeAI.loaded then
-			reply.Text = "Load HypeAI or CoAI first."
-			return
-		end
-		local q = ask.Text
-		if q == "" then return end
-		setTyping(true)
-		reply.Text = ENV.hypeAI.name .. " is thinking..."
-		scriptBox.Text = ""
-		task.spawn(function()
-			task.wait(0.6 + math.random() * 0.8) -- typing feel
-			local script, where, note = genScript(q)
-			setTyping(false)
-			reply.Text = (note ~= "" and note or (ENV.hypeAI.name .. " [" .. ENV.hypeAI.mode .. "]"))
-				.. "\nCopy the script below."
-			scriptBox.Text = script
-			whereLbl.Text = "Where to put: " .. where
-			ask.Text = ""
-		end)
-	end)
-
-	createSectionF("Toolbox / Models", baseY + 310)
-	local searchBox = Instance.new("TextBox")
-	searchBox.Size = UDim2.new(1, -4, 0, 28)
-	searchBox.Position = UDim2.new(0, 2, 0, baseY + 332)
-	searchBox.BackgroundColor3 = Color3.fromRGB(50, 30, 60)
-	searchBox.PlaceholderText = "Search toolbox models..."
-	searchBox.Text = ""
-	searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	searchBox.Font = Enum.Font.Gotham
-	searchBox.TextSize = 11
-	searchBox.ClearTextOnFocus = false
-	searchBox.Parent = FeaturesFrame
-	Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 6)
-
-	local resultsLbl = Instance.new("TextLabel")
-	resultsLbl.Size = UDim2.new(1, -4, 0, 36)
-	resultsLbl.Position = UDim2.new(0, 2, 0, baseY + 364)
-	resultsLbl.BackgroundTransparency = 1
-	resultsLbl.Text = "Search or paste a model ID."
-	resultsLbl.TextColor3 = Color3.fromRGB(180, 170, 220)
-	resultsLbl.Font = Enum.Font.Gotham
-	resultsLbl.TextSize = 10
-	resultsLbl.TextWrapped = true
-	resultsLbl.TextXAlignment = Enum.TextXAlignment.Left
-	resultsLbl.Parent = FeaturesFrame
-
-	createButtonF("Search Models", baseY + 404, function()
-		local q = searchBox.Text
-		if q == "" then resultsLbl.Text = "Type a search first." return end
-		resultsLbl.Text = "Searching..."
-		task.spawn(function()
-			local found = {}
-			pcall(function()
-				local url = "https://catalog.roblox.com/v1/search/items?category=Models&keyword="
-					.. game:GetService("HttpService"):UrlEncode(q) .. "&limit=10"
-				local body = game:HttpGet(url)
-				local data = game:GetService("HttpService"):JSONDecode(body)
-				if data and data.data then
-					for _, item in ipairs(data.data) do
-						table.insert(found, tostring(item.id or "?"))
-					end
-				end
-			end)
-			if #found > 0 then
-				resultsLbl.Text = "Found IDs: " .. table.concat(found, ", ")
-				ENV.hypeAI.lastIds = found
-			else
-				resultsLbl.Text = "No results / HttpGet blocked. Paste an ID."
-			end
-		end)
-	end)
-
-	local idBox = Instance.new("TextBox")
-	idBox.Size = UDim2.new(1, -4, 0, 28)
-	idBox.Position = UDim2.new(0, 2, 0, baseY + 436)
-	idBox.BackgroundColor3 = Color3.fromRGB(50, 30, 60)
-	idBox.PlaceholderText = "Model ID..."
-	idBox.Text = ""
-	idBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	idBox.Font = Enum.Font.Gotham
-	idBox.TextSize = 11
-	idBox.ClearTextOnFocus = false
-	idBox.Parent = FeaturesFrame
-	Instance.new("UICorner", idBox).CornerRadius = UDim.new(0, 6)
-
-	createButtonF("Insert Model", baseY + 470, function()
-		local id = tonumber(idBox.Text:match("%d+"))
-			or (ENV.hypeAI.lastIds and tonumber(ENV.hypeAI.lastIds[1]))
-		if not id then return end
-		task.spawn(function()
-			local ok, model = pcall(function()
-				return game:GetService("InsertService"):LoadAsset(id)
-			end)
-			if ok and model then
-				local m = model:GetChildren()[1] or model
-				pcall(function()
-					m.Parent = workspace
-					local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-					if root and m:IsA("Model") then
-						m:PivotTo(root.CFrame * CFrame.new(0, 0, -10))
-					end
-				end)
-				resultsLbl.Text = "Inserted " .. tostring(id)
-			else
-				resultsLbl.Text = "Insert failed."
-			end
-		end)
-	end)
-
-	FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, baseY + 520)
-end
+-- BABFT removed
+local function buildGame7Features() end
+
+-- Studio Lite removed
+local function buildGame8Features() end
 
 -- How to add a game: put PlaceId + builder in SUPPORTED
 local SUPPORTED = {
@@ -4892,8 +3721,6 @@ local SUPPORTED = {
 	[tonumber("78579721506911")] = buildGame4Features,
 	[tonumber("82554996468034")] = buildGame5Features,
 	[tonumber("84718070904253")] = buildGame6Features, -- Monkey Math
-	[tonumber("537413528")] = buildGame7Features, -- BABFT Builds
-	[tonumber("10959918411")] = buildGame8Features, -- Studio Lite / HypeAI
 }
 
 local gameNameLabel = Instance.new("TextLabel")
@@ -4958,10 +3785,6 @@ do
 		nameL.Parent = entry
 		if placeId == tonumber("84718070904253") then
 			nameL.Text = "Monkey Math"
-		elseif placeId == tonumber("537413528") then
-			nameL.Text = "BABFT Builds"
-		elseif placeId == tonumber("10959918411") then
-			nameL.Text = "Studio Lite • HypeAI"
 		else
 			task.spawn(function()
 				pcall(function()
@@ -4989,7 +3812,7 @@ do
 	else
 	createSection(OwnerPage, "Owners", 0)
 	local y = 24
-	for _, userName in ipairs({_d({69,121,102,97,110,98,111,121,48,57}), _d({84,104,101,83,108,101,100,77})}) do
+	for _, userName in ipairs({"Eyfanboy09", "TheSledM"}) do
 		local card = Instance.new("Frame")
 		card.Size = UDim2.new(1, -4, 0, 48)
 		card.Position = UDim2.new(0, 2, 0, y)
